@@ -1,0 +1,11 @@
+{
+  "VietAPI": {
+    "base_url": "https://api.example.com/v1",
+    "api_key": "replace_me",
+    "models": [
+      "gpt-model",
+      "deepseek-model",
+      "gemini-model"
+    ]
+  }
+}

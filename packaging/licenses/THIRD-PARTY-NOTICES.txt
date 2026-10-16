@@ -1,0 +1,15 @@
+This distribution includes Python, PySide6/Qt, ONNX Runtime, RapidOCR,
+OpenCV, NumPy, Pillow, Shapely, Pyclipper, PyYAML, comtypes, UIAutomation,
+pynput, keyboard, pyperclip, python-dotenv, httpx/httpcore and dependencies.
+Copyright belongs to the respective authors.
+
+Runtime distribution metadata and license notices are included under
+_internal/*.dist-info, _internal/licenses and the relevant package folders.
+Qt/PySide6 is dynamically linked; its libraries can be replaced with compatible
+versions. This application does not impose restrictions on debugging modified
+versions of those libraries. LGPL-3.0/GPL-3.0 license texts are included.
+Qt and PySide source: https://code.qt.io/ and https://download.qt.io/official_releases/
+Python source: https://www.python.org/downloads/source/
+RapidOCR source/model project: https://github.com/RapidAI/RapidOCR (Apache-2.0).
+ONNX Runtime source/notices: https://github.com/microsoft/onnxruntime (MIT).
+OpenCV source/notices: https://github.com/opencv/opencv (Apache-2.0).

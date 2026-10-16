@@ -1,0 +1,107 @@
+{
+  "app": {
+    "name": "AI Screen Translator",
+    "data_dir": "data",
+    "log_level": "INFO"
+  },
+  "hotkeys": {
+    "translate_selection": "alt+t",
+    "translate_and_replace": "alt+shift+t",
+    "live_toggle": "alt+l",
+    "region_translate": "alt+s",
+    "target_vi": "alt+1",
+    "target_en": "alt+2",
+    "target_zh_hant": "alt+3",
+    "release_delay_ms": 60,
+    "suppress_hotkeys": true
+  },
+  "clipboard": {
+    "copy_timeout_ms": 900,
+    "copy_poll_ms": 10,
+    "paste_restore_delay_ms": 350
+  },
+  "translation": {
+    "source_language": "auto",
+    "target_language": "vi",
+    "context_preset": "engineering",
+    "prompt_version": "v5",
+    "cache_enabled": true,
+    "performance_mode": "fast",
+    "streaming": {
+      "ultra_fast": true,
+      "fast": false,
+      "quality": false
+    },
+    "prompt_catalog_path": "prompts.json"
+  },
+  "providers": {
+    "catalog_path": "providers.json",
+    "active_profile": "third_party",
+    "profile_overrides": {
+      "third_party": {
+        "api_key_env": "THIRD_PARTY_API_KEY",
+        "model": "YOUR_MODEL_ID",
+        "streaming_override": {
+          "ultra_fast": false
+        }
+      },
+      "deepseek_example": {
+        "api_key_env": "THIRD_PARTY_API_KEY",
+        "model": "deepseek-chat",
+        "endpoint_mode": "chat_completions",
+        "streaming_override": {
+          "ultra_fast": false,
+          "fast": false
+        }
+      },
+      "glm_example": {
+        "api_key_env": "THIRD_PARTY_API_KEY",
+        "model": "glm-4.5",
+        "endpoint_mode": "chat_completions"
+      },
+      "openai_official_example": {
+        "api_key_env": "OPENAI_API_KEY",
+        "model": "gpt-5.6-luna",
+        "endpoint_mode": "responses",
+        "streaming_override": {
+          "ultra_fast": true
+        }
+      },
+      "mock": {
+        "type": "mock",
+        "model": "mock-v2"
+      }
+    }
+  },
+  "ui": {
+    "popup_width": 620,
+    "popup_height": 430,
+    "popup_offset_x": 16,
+    "popup_offset_y": 18,
+    "main_width": 1040,
+    "main_height": 720,
+    "region_capture_delay_ms": 140,
+    "region_min_size_px": 12,
+    "region_overlay_opacity": 120
+  },
+  "features": {
+    "live_screen_enabled": false,
+    "region_translate_enabled": true
+  },
+  "ocr": {
+    "engine": "rapidocr",
+    "min_confidence": 0.45
+  },
+  "quick_ux": {
+    "auto_show_toolbar": true,
+    "selection_delay_ms": 250,
+    "languages": [
+      "vi",
+      "en",
+      "zh-Hant"
+    ],
+    "dismiss_popup_on_blur": true,
+    "toolbar_timeout_ms": 8000,
+    "max_selection_chars": 6000
+  }
+}

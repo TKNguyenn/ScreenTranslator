@@ -1,0 +1,17 @@
+{
+  "app": {"name": "AI Screen Translator", "data_dir": "data", "log_level": "INFO"},
+  "providers": {
+    "catalog_path": "providers.json",
+    "active_profile": "Google Translate Free",
+    "profile_overrides": {}
+  },
+  "translation": {
+    "source_language": "auto",
+    "target_language": "vi",
+    "context_preset": "engineering",
+    "prompt_version": "v5",
+    "cache_enabled": true,
+    "performance_mode": "fast",
+    "prompt_catalog_path": "prompts.json"
+  }
+}

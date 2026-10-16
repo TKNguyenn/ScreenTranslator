@@ -1,0 +1,556 @@
+# V0.4.1.8 colocated layout handoff (2026-10-16)
+
+Current frozen root is Path(sys.executable).resolve().parent. Source mode is unchanged. All default JSONs and .env are beside the exe, relative data/ beside them. Installer LegacyDataDir is only an import/cleanup location. [Files] external onlyifdoesntexist copies known old data when no config/catalog exists in the destination; originals remain until uninstall for recovery. No personal data is bundled at build time.
+
+Uninstall removes known runtime files, app-owned data/, tracked installed payload, legacy app data, shortcuts and registry. Never recursively remove {app}: it may contain unrelated user files. Keep mode backs up only catalogs to LegacyDataDir.keep-<unique temp name> outside either removal tree, then restores to {app}. Full mode deletes catalogs too and removes empty app root. Older append-only logs may still delete the legacy root; recovery handles that. Reinstall with retained catalogs skips legacy import entirely. Smoke fixture includes an actual older uninstall log and checks both deletion modes plus unrelated-file survival.
+
+Earlier implementation history follows; the split data paths below were superseded by 0.4.1.8.
+
+Validation: 165 tests/compile pass; artifacts/release-self-check.json reports version 0.4.1.8 and ok=true. artifacts/release-install-uninstall.json has 16 successful checks, sandbox Temp/ast-release-smoke-97gbt0zs. App and legacy sandbox data removed; test fixture sources/logs/sentinels remain. release/AI-Screen-Translator-0.4.1.8-Setup.exe (111907159 bytes), release/Uninstall.exe and SHA256.txt verified. No installation into the user's actual app location. Unsigned; clean second-PC and interactive acceptance pending.
+
+# V0.4.1.7 uninstall handoff (2026-10-16)
+
+Uninstall.exe is a small C#/.NET Framework launcher (packaging/Uninstall.cs); registry resolves custom install location and minimum installed version 0.4.1.7 prevents calling an older destructive uninstaller. It exits immediately after launching native unins000.exe so its installed copy can be deleted. Build compiles it with Windows csc before bundling; installer replaces legacy Uninstall.bat.
+
+Native Inno InitializeUninstall offers two exclusive radio options: keep exactly providers.json/prompts.json (default), or remove everything. Silent /DATA=keep|all has the same semantics; invalid values abort. Before file removal (usUninstall, after the app mutex check), keep mode copies the two files to a unique persistent sibling recovery directory. The ordinary logged data-tree deletion then runs, including deletion entries inherited from older installers. usPostUninstall restores the two files and deletes recovery. Backup failure aborts before removal. Restore failure keeps recovery and reports the location. Original files are never modified during backup; no key contents are logged. Source/exports/explicit external data paths remain out of scope.
+
+Validation: 165 tests pass and compile passes. Native Windows release smoke passes real frozen self-check/OCR and custom-location install/reinstall. Default keep through the standalone launcher leaves exactly two byte-identical catalog files and no recovery folder; reinstall preserves them. Full removal through the installed launcher removes itself and all installed files/data/shortcuts/registration. Exclusive file lock on providers.json causes a fatal pre-removal abort; releasing it allows subsequent successful uninstall. Invalid /DATA also aborts without removal. Mutex and unrelated junction target checks pass. Interactive radio selection/clean second-PC remain unchecked; release is unsigned. Reports: artifacts/release-install-uninstall.json and release-self-check.json.
+
+## Earlier release history
+
+# V0.4.1.6 Windows release handoff (2026-10-16)
+
+Installer follow-up: destination page always visible/editable with Browse; desktop shortcut checkbox is on FinishedPage and creates the link on ssDone only when checked. [UninstallDelete] removes the custom-created link. Standalone helper resolves HKCU x64 InstallLocation for custom folders. Installer rejects paths over 180 characters before installation because deeply nested sandbox installs caused Qt platform plugin initialization to abort. Custom-path smoke now uses a short Temp sandbox and asserts registry-based helper removal.
+
+Follow-up validation: sandbox install/self-check/reinstall/helper-uninstall passes for a custom path with spaces; long-path guard verified at 212 characters (exit 7 before file installation). Native destination/Browse UI observed. Interactive finish-checkbox acceptance was interrupted by the user's physical Escape (Computer Use stopped); no further UI automation performed. The launched test installer and its failed-run sandbox installation were cleaned up through exact process/path and the standard uninstaller.
+
+User requested standalone exe and an uninstall file that removes everything owned by the app. `packaging/ScreenTranslator.spec` creates a windowless onedir exe, collecting app assets/defaults, local RapidOCR models, ONNX Runtime, UIA data/COM wrappers, Windows input backends and runtime license metadata. `packaging/installer.iss` wraps this in a per-user Windows 10/11 x64 Inno Setup installer with Desktop/Start Menu shortcuts and Windows Apps registration. Build via `packaging/build.ps1` (PyInstaller 6.22.3 + Inno Setup 7.1.0 used locally). Unsigned release; no publication or user installation performed.
+
+`application_root()` in config.py uses LocalAppData/AIScreenTranslator for frozen apps, project root for Python. Frozen first run seeds only missing files from app/defaults (Google Free, no secrets) after the single-instance guard. Source config/catalog/data remains untouched. `.env` loads beside the selected config. SingleInstanceGuard also holds a pointer-safe native mutex in frozen Windows; Inno refuses install/uninstall while it exists. `--self-check` writes a local JSON report, testing real Qt/theme/widgets/Google forms, COM/UIA and synthetic local OCR without API calls or input hooks.
+
+App files install in LocalAppData/Programs/AIScreenTranslator. Standard `unins000.exe` plus Uninstall.bat remove tracked app files/shortcuts/registry and the fixed per-user LocalAppData/AIScreenTranslator tree. Uninstall.bat is also supplied beside Setup and forwards to the installed uninstaller. Confirmation states saved keys/prompts/cache/logs are deleted; source project/exported files/explicit external data paths stay untouched. No recursive deletion of arbitrary install or config paths is implemented in custom scripts.
+
+Validation: 164 unit/widget/source tests and compile pass. `tests/windows_release_smoke.py` compiles an installer with isolated app/data/shortcut/AppId values, installs, runs the actual frozen self-check from an unrelated cwd, reinstalls preserving modified config and uninstalls; verifies app/data/shortcut/registry removal and unrelated-file survival. Reports: artifacts/release-self-check.json and release-install-uninstall.json. Frozen OCR recognizes HELLO WORLD 123 using bundled models. Clean second-PC/signing/real-provider acceptance remains pending. Release folder contains Setup, Uninstall.bat and SHA256.txt; docs/Windows_Release.md includes use/build instructions.
+
+---
+
+# V0.4.1.5 Google providers handoff (2026-10-15)
+
+UI follow-up: removed the redundant catalog subtitle/banner, moved both Google preset buttons into the Import/Export row, and hide the entire Models and Streaming override groups for both Google types (restore for AI). Values remain available to the existing save flow. Compact-layout widget tests load actual Segoe UI fonts under Windows offscreen Qt, matching native Qt instead of the empty offscreen font database. Native Google smoke also checks group visibility/restoration.
+
+Integrated the user-supplied standalone addon as `app/providers/google_translate_addon.py`, subclassing TranslationProvider and rejecting empty translation responses. Source addon remains untouched. Canonical HTTPS Google host inference is used in profile parsing/factory; explicit non-Google types and existing provider routes remain. URL validation forbids custom hosts/paths/userinfo/ports to protect key/text. Web splits Unicode GET text by encoded size with a bounded chunk count; errors omit raw body, URL, key and selected text. Web suppresses httpx/httpcore request logging to WARNING process-wide. Cloud key is X-goog-api-key; no redirects or fallback to paid Cloud.
+
+TranslationWorker consumes optional `cache_scope` and optional streaming override hooks, retaining old LLM prompt hashes. Google is non-streaming and cache entries can be reused across speed/style/prompt, still isolated by source/target/provider/model/text. Controller effective streaming mirrors this. Provider tests now send a real English-to-Vietnamese translation rather than an LLM OK instruction.
+
+MainWindow preset buttons add/select working profiles without applying them or overwriting existing names. Save/rename/delete/import/export use the existing portable catalog and app-only overrides. Type selection sets canonical Google URL/model; endpoint, alternative-model, streaming and Free-key controls are disabled. Active Google disables Prompt Editor sections and tray style/speed actions but does not erase their values. Empty-key Cloud is allowed as inactive catalog entry, rejected by construction when applied/tested.
+
+Validation: 160 tests PASS (18 new adapter/integration/widget/controller tests), compile PASS, `tests/windows_google_ui_smoke.py` PASS, existing Windows Quick UX smoke PASS. Synthetic preview files are in `artifacts/google-v0415/`. No real Google call/key/billing acceptance check. No changes to the user's live providers.json/config.json or dependencies. Runtime version is 0.4.1.5. User guide: `docs/Google_Providers_V0_4_1_5.md`.
+
+---
+
+# V0.4.1.4 Dark Ocean Aurora Bento handoff (2026-10-14)
+
+Approved identity: concept 1 Glyph Slash logo + concept 1 Aurora Bento UI from the user's `G:/My Drive/VibeCode/demo_UI/demo_UI_ver2`. Assets are copied into `app/assets` and have no runtime dependency on G:. `app/ui/theme.py` applies Fusion, a dark palette and `ocean_theme.qss` once during bootstrap; it also provides icon lookup and native dark title bars. `aurora.py` paints the main ocean backdrop and decorative hero using Qt.
+
+`main_window.py` keeps the six existing pages/signals, adds branded icon navigation and cards connected to runtime state, and wraps each page in a vertical scroll area. Capture honors the feature flag; overview shortcuts reflect config. Provider footer and prompt action grids fit compact windows. All titles wrap instead of forcing a larger page. Tray, legacy popup and region selection follow the theme. `FloatingSurface` still paints an opaque ocean gradient directly, now with a cyan-to-emerald rim. Do not replace this with only translucent QWidget QSS: that caused the missing-background bug. Quick Popup dragging/resizing, result geometry, pinning, no-activate and source panes are retained.
+
+Validation: 142 unittest tests PASS, compileall PASS, native Windows Qt smoke PASS with `apply_theme` enabled. New widget tests cover navigation/assets, actual runtime state, region feature flag, masked provider key/save signals, Quick settings and compact layout. `python tests/ocean_ui_preview.py` creates synthetic previews for all six real pages (1180×800 and 900×620) and both popup variants without API/clipboard/hooks. Offscreen Qt on Windows requires explicitly loading system fonts in the preview script. `python tests/windows_quickux_ui_smoke.py` checks native opaque backgrounds, topmost/no-activate, drag and final geometry. External-app/provider and broader DPI checks remain user acceptance work. See `docs/Ocean_UI_Design_V0_4_1_4.md`.
+
+---
+
+# V0.4.1.3 Quick UX UI handoff (2026-10-12)
+
+User confirmed selection toolbar is now visible. New request: fix missing backgrounds and redesign toolbar/popup; allow moving and resizing the popup after clicking a language.
+
+`app/ui/floating_surface.py` paints the solid navy card explicitly with QPainter while keeping rounded transparent outer corners. The former custom QWidget only relied on stylesheet background painting, which did not reliably paint the translucent toolbar. The shared surface also handles mouse-based edge resize and draggable header labels without activating the source window.
+
+`quick_toolbar.py` adds a badge, separated language controls, consistent menu styling and suspends auto-dismiss while its menu is open. `quick_popup.py` adds readable header, metadata, primary Copy action, Pin, drag hints, expandable vertical splitter and bottom-right QSizeGrip. It has minimum 360x280 and initial 460x360, without fixed/max body sizing. `finish`/`fail` no longer call `_show_near`, so streaming/final/error events preserve user geometry and never reopen a dismissed popup. Popup size persists across requests for the lifetime of the instance; position is reset near the new selection only on start.
+
+Validation: 135 tests PASS, compile PASS. `python tests/windows_quickux_ui_smoke.py` verifies actual Windows Qt opaque background, topmost/no-activate styles, header drag and retained geometry using offscreen-positioned windows with synthetic text. `python tests/quickux_ui_preview.py` renders the real widgets to `artifacts/quickux-v0413-preview.png` without provider or clipboard access. Widget tests cover alpha painting, drag, edge/grip resize, minimum dimensions, final/error geometry, pin/source toggles and late results. Broader source-app/DPI acceptance remains pending.
+
+---
+
+# V0.4.1.2 UIA compatibility handoff (2026-10-12)
+
+User reports no toolbar in any app, running global Python 3.11 on Windows 11. Latest log confirms the pynput hook starts and recognizes gestures; UIA probing returns no snapshot. Root cause of the reported cross-app failure is not yet confirmed: the former reader hid provider exceptions and assumed typed GetTextPattern helpers plus only five ancestors.
+
+Changes: generic GetPattern access; 12 ancestor levels and bounded source-window subtree search (64 nodes, six levels), password/process/foreground guards; content-free UIA status propagated to Diagnostics; pointer-sized Win32 bindings. Added nine regression tests and `python tests/windows_quickux_smoke.py` (offscreen synthetic RichEdit, no focus/clipboard/API changes). Also explicitly close SQLite connections and specify UTF-8 in old source tests to fix Windows test failures.
+
+Verified on this Windows environment: 124/124 unittest tests PASS; compile PASS; actual native RichEdit selected text read through UIA PASS. This does not certify mouse selection in all third-party apps. Restart the app completely, check v0.4.1.2, test Notepad then Edge/Chrome. Unsupported TextPattern providers still use manual Alt+T; no passive clipboard fallback was introduced.
+
+---
+
+# V0.4.1.1 quick bugfix handoff (2026-10-12)
+
+Symptom: Mouse highlight produces no floating toolbar. Confirmed source-level bug: `MouseSelectionMonitor._on_click` had a four-parameter signature while pynput >=1.8 can invoke it with five parameters including `injected`. Listener exceptions can terminate global listener in background without visible UI warnings.
+
+Fix: fifth `injected=False` callback parameter with backward compatibility; ignore injected clicks; catch/log unexpected callback exceptions rather than kill hook; start/gesture INFO logs; `MouseSelectionMonitor.is_running()`; Diagnostics shows hook health and last UIA detection stage. Added `tests/test_v0411_mouse_hook.py`; added `docs/QuickUX_Windows_Troubleshooting.md`. No API, prompt, cache, provider or clipboard change.
+
+Windows acceptance: Exit old app completely, launch new folder, verify v0.4.1.1 tray label; select in Notepad; check UIA toolbar; translate. If missing, use Diagnostics and `data/logs/app.log`; UIA non-support still requires hotkey. Headless tests don't validate Windows UIA.
+
+---
+
+# IMPLEMENTATION HANDOFF - AI SCREEN TRANSLATOR V0.4.1
+
+## 1. Current milestone
+
+Current release: **V0.4.1 Quick UX (Floating Selection Toolbar P0)**.
+
+This version continues **V0.4.0 Region Translate** and adds **Quick UX P0** with an auto-show toolbar enabled by default. The existing screen/OCR pipeline is preserved:
+
+```text
+Region selector -> local screenshot -> OcrWorker -> RapidOCR -> TranslationWorker -> popup
+```
+
+Do not collapse this project back into one script. V0.4.0 intentionally separates screen selection, OCR inference and translation because the same pieces will be reused by Live Translate and scanned-PDF translation.
+
+---
+
+## 2. Existing architecture that must remain intact
+
+### Main/UI thread
+
+Owns:
+
+- `AppController`
+- `MainWindow`
+- `TrayIcon`
+- `TranslationPopup`
+- `RegionSelectorOverlay`
+
+No network inference or OCR inference may run here.
+
+### Hotkey thread
+
+`HotkeyService` owns global keyboard registration.
+
+### InputWorker
+
+Owns selected-text clipboard capture and replace/paste operations.
+
+### OcrWorker - new in V0.4.0
+
+Owns local OCR jobs and OCR engine replacement on runtime reload.
+
+### TranslationWorker
+
+Owns:
+
+- prompt resolution;
+- cache lookup/write;
+- provider requests;
+- streaming.
+
+Region Translate must feed OCR text into the existing TranslationWorker, not create a second translation stack.
+
+---
+
+## 3. V0.4.0 new modules
+
+### `app/ui/region_selector.py`
+
+Responsibilities only:
+
+- identify monitor under cursor;
+- capture that monitor before overlay is shown;
+- show translucent drag overlay;
+- accept left-drag selection;
+- cancel on Escape/right-click;
+- map logical Qt coordinates to screenshot pixel coordinates;
+- encode selected crop to PNG bytes;
+- emit `RegionCaptureResult`.
+
+It must not run OCR or call providers.
+
+### `app/ocr/base.py`
+
+OCR engine interface.
+
+### `app/ocr/rapidocr_engine.py`
+
+Default local OCR backend using `rapidocr_onnxruntime`.
+
+Important behavior:
+
+- import is lazy;
+- model initialization is lazy;
+- confidence filter is applied locally;
+- backend output is normalized to `OcrBlock` objects and a newline-joined text string.
+
+### `app/ocr/mock_engine.py`
+
+Deterministic backend used by tests/development.
+
+### `app/ocr/factory.py`
+
+Creates OCR backend from `OcrSection`.
+
+### `app/workers/ocr_worker.py`
+
+Queue-based worker with:
+
+- `OcrTask`
+- `OcrReloadTask`
+- ordered engine replacement
+- result callback returning `OcrResult`
+
+---
+
+## 4. New models
+
+`RequestMode` now includes:
+
+```text
+REGION
+```
+
+New dataclasses:
+
+- `RegionCaptureResult`
+- `OcrBlock`
+- `OcrResult`
+
+Region requests use `foreground_hwnd=None` and cannot use Replace-in-source.
+
+---
+
+## 5. Region Translate runtime flow
+
+### Start sources
+
+Region Translate can start from:
+
+- global hotkey `Alt+S`;
+- Tray action;
+- Main Window Screen Translate page.
+
+Controller method:
+
+```text
+_begin_region_job()
+```
+
+### UI capture phase
+
+```text
+_begin_region_job
+ -> optionally hide Main Window
+ -> QTimer delay
+ -> RegionSelectorOverlay.begin(job_id)
+ -> screenshot current cursor monitor
+ -> user drag
+ -> RegionCaptureResult
+```
+
+The small delay is configurable so the manager window has time to disappear before screen capture.
+
+### OCR phase
+
+```text
+_on_region_captured
+ -> popup: OCR processing
+ -> OcrWorker.submit(PNG)
+ -> RapidOCR local
+ -> OcrResult
+```
+
+### Translation phase
+
+```text
+_on_ocr
+ -> popup: OCR source text + translating status
+ -> TranslationRequest(mode=REGION)
+ -> TranslationWorker
+ -> cache/provider/streaming
+ -> TranslationPopup
+```
+
+The provider receives text only.
+
+---
+
+## 6. Multi-monitor and DPI decision
+
+V0.4.0 supports any attached monitor but selection is constrained to one monitor per job.
+
+Monitor selection:
+
+```python
+QGuiApplication.screenAt(QCursor.pos())
+```
+
+DPI mapping:
+
+```text
+scale_x = screenshot_pixel_width / screen_logical_width
+scale_y = screenshot_pixel_height / screen_logical_height
+```
+
+Selection logical rect is multiplied by these scale factors before `QPixmap.copy`.
+
+Do not remove this conversion and assume 1:1 coordinates.
+
+Future cross-monitor selection must explicitly handle different DPI per monitor, not concatenate rectangles blindly.
+
+---
+
+## 7. OCR configuration
+
+New config section:
+
+```json
+"ocr": {
+  "engine": "rapidocr",
+  "min_confidence": 0.45
+}
+```
+
+Supported engines in V0.4.0:
+
+- `rapidocr`
+- `mock` (testing)
+
+Unknown engine names fail config validation.
+
+`min_confidence` must be within `[0.0, 1.0]`.
+
+Runtime Reload builds a new OCR engine and queues replacement behind any OCR job already in flight.
+
+---
+
+## 8. UI configuration additions
+
+`UiSection` adds:
+
+- `region_capture_delay_ms`
+- `region_min_size_px`
+- `region_overlay_opacity`
+
+These are app behavior values and therefore belong in `config.json`, not `providers.json` or `prompts.json`.
+
+---
+
+## 9. Feature flags
+
+V0.4.0 defaults:
+
+```json
+"features": {
+  "live_screen_enabled": false,
+  "region_translate_enabled": true
+}
+```
+
+Tray and Main Window reflect Region enabled/disabled state after reload.
+
+Live Translate remains disabled until V0.4.5.
+
+---
+
+## 10. Popup behavior
+
+`TranslationPopup` now supports:
+
+- `show_ocr_processing(...)`
+- `allow_replace` flag
+
+Region results must use:
+
+```text
+allow_replace=False
+```
+
+Selected-text POPUP mode retains Replace capability.
+
+---
+
+## 11. Portable configuration rules from V0.3.x remain frozen
+
+### `providers.json`
+
+Portable source of truth only for:
+
+- provider name
+- base URL
+- API key
+- model list
+
+Do not add OCR fields here.
+
+### `prompts.json`
+
+Only user prompt overrides.
+
+### `config.json`
+
+App behavior including OCR/region settings.
+
+---
+
+## 12. Prompt architecture remains unchanged
+
+Prompt override grid remains exactly:
+
+```text
+3 performance modes x 3 styles = 9 independent slots
+```
+
+Supported placeholders:
+
+- `{source_language}`
+- `{target_language}`
+- `{style}`
+- `{engineering_terms}`
+- `{glossary}`
+
+`{glossary}` is still reserved for the planned V0.6 glossary system.
+
+Region OCR text uses the same effective prompt as selected text for the active speed/style.
+
+---
+
+## 13. Cache behavior
+
+Region OCR text is a normal TranslationRequest source string, so translation cache works without a separate region cache.
+
+Effective prompt hash remains part of cache identity.
+
+Changing prompt/model/provider/style/target can therefore invalidate/re-scope cache correctly.
+
+Do not cache raw screenshots in the translation cache.
+
+---
+
+## 14. Dependencies
+
+V0.4.0 adds:
+
+```text
+rapidocr_onnxruntime>=1.4,<2
+```
+
+It is imported lazily from the OCR backend.
+
+Recommended Windows source runtime remains Python 3.11/3.12 x64.
+
+---
+
+## 15. Tests added in V0.4.0
+
+New tests cover:
+
+- OCR config defaults/validation;
+- RapidOCR record parsing/order/confidence filtering;
+- OcrWorker execution;
+- ordered OCR engine reload;
+- Region selector DPI/source decisions via source assertions;
+- Controller capture -> OCR -> Translation wiring;
+- tray/main Region UI exposure;
+- OCR dependency declaration.
+
+Existing V0.3.x test suite remains active.
+
+The build environment can run compile/unit/source tests but cannot certify actual Windows overlay/DPI behavior. Do not claim Windows GUI validation until run on Windows.
+
+---
+
+## 16. Required Windows smoke tests before Live Translate
+
+Test:
+
+1. `Alt+S` on primary monitor.
+2. `Alt+S` on secondary monitor.
+3. Escape cancel.
+4. Right-click cancel.
+5. Small-selection retry.
+6. Chinese Traditional OCR.
+7. English OCR.
+8. 100% DPI.
+9. 125% DPI.
+10. 150% DPI.
+11. mixed-DPI monitors if available.
+12. app started from Main Window button.
+13. app started from Tray.
+14. app started from hotkey while Main Window hidden.
+15. config reload changing OCR threshold.
+
+If any crop/DPI bug exists, fix it in V0.4.1 before V0.4.5.
+
+---
+
+## 17. Next milestone
+
+See `current_plan.md` sections 18–19 for the updated roadmap.
+
+Recommended next sequence:
+
+```text
+V0.4.1 Quick UX P0 source build (current)
+ -> Windows smoke test (UIA, no-activate popup, safe Replace, DPI)
+ -> V0.4.1.1 bugfix only if necessary
+ -> V0.4.2 Quick Compose / Explain OR V0.4.5 Live Translate
+```
+
+Live Translate must reuse the V0.4 capture/OCR abstractions and add change detection/block tracking rather than repeatedly translating every frame.
+
+---
+
+## 18. V0.4.1 Quick UX addendum (P0)
+
+**User decision:** auto-show is ON by default on mouse-highlight, unlike the first UX draft. All data transfer remains opt-in: mouse selection alone never initiates provider calls.
+
+### New modules
+
+- `app/quickux/selection.py`: immutable candidate/snapshot/check models + pure `MouseGestureRecognizer` (drag/double-click).
+- `app/quickux/mouse_monitor.py`: daemon `pynput.mouse.Listener` for global LEFT press/release. Filters own windows via Win32 hit-testing, sends Python data only through `WorkerBridge.quick_mouse` to Qt GUI. No direct Qt calls from hook.
+- `app/quickux/uia_reader.py`: uses `uiautomation.GetFocusedControl/ControlFromPoint`, `TextPattern.GetSelection`, max length cap. Password guard; no clipboard.
+- `app/quickux/selection_worker.py`: dedicated COM-initialized thread; ordered async probe and verify results. Mouse candidates are debounced via Qt timer and generation counter; UIA timeout/fail is safe (bar does not show).
+- `app/ui/quick_toolbar.py`: noactivate dark pill VI/EN/繁/⋯; position clamped to current screen availableGeometry.
+- `app/ui/quick_popup.py`: noactivate ~414px card; status, coalesced streaming delta, Copy, Replace, Pin, toggle original, Close.
+
+### New settings (not portable provider/prompt files)
+
+`QuickUxSection` in `app/config.py` is part of `AppConfig`. `config.json.quick_ux` default:
+
+```json
+{
+  "auto_show_toolbar": true,
+  "selection_delay_ms": 250,
+  "languages": ["vi", "en", "zh-Hant"],
+  "dismiss_popup_on_blur": true,
+  "toolbar_timeout_ms": 8000,
+  "max_selection_chars": 6000
+}
+```
+
+MainWindow Quick UX Settings saves atomically through ConfigFileStore. Tray checkbox persists the same setting. `Reload config` reinitializes settings without reopening the app. `providers.json` and `prompts.json` are unchanged.
+
+### Controller integration
+
+`PendingJob(quick=True)` routes separate quick jobs, while Region/Alt+T still use `TranslationPopup`. Quick jobs call the existing `TranslationWorker`; the one-shot target button does not mutate global target. Old stream/final events are filtered by `job_id`; UIA snapshots by serial. `QuickPopup` aggregates SSE deltas at 55ms cadence.
+
+Before Quick Replace, **two checks** are intentionally applied:
+
+1. `QuickSelectionWorker.verify()` checks original HWND, exact UIA text, control signature and read-only state.
+2. `InputWorker._paste()` re-captures clipboard-copyable selected text on explicit Replace and compares it against the original snapshot. Any mismatch cancels paste. This is not an atomic guarantee against all cross-process races, but substantially reduces the risk of replacing the wrong text.
+
+Escape is observed through an additional non-suppressing keyboard handler in `HotkeyService`; `Alt+T`, `Alt+Shift+T`, `Alt+S` remain unchanged. Main Window still opens first, minimizes to tray, and closes on X.
+
+### Dependency and deployment
+
+`requirements.txt` adds `pynput>=1.7.7,<2` and Windows-only `uiautomation>=2.0,<3`. On Windows, run `run.bat`; it installs dependencies into `.venv` automatically. New dependencies are used **only** for passive toolbar detection. If COM/UIA does not support an app, no clipboard fallback is attempted automatically; hotkeys are supported as before.
+
+### Test, risk and follow-up
+
+- Completed source-level checks: **109/109 tests PASS** and full compileall PASS. This is **not** equivalent to Windows GUI/hook validation.
+- Late canceled Quick UX translation results are tombstoned so they never re-enter the legacy replacement handler.
+- Closing popup, Escape, or external mouse click cancels queued Quick Replace. InputWorker checks the expected HWND and selected text without forcibly foregrounding the former app; the paste service checks a cancellation event before Ctrl+V.
+- UIA text selections lacking explicit writable ValuePattern are allowed for translation but must not allow Replace.
+
+- `python -m unittest discover -s tests -v` and `python -m compileall -q app` must pass.
+- Python unit coverage includes QuickUxSection validation, drag/double-click classification, UIA selection simulation, password guard, read-only reject, no selection, worker callbacks and source architecture assertions.
+- **Windows GUI validation has not been performed in this Linux container** (PySide6 runtime and Windows UIA unavailable here). Test Chrome/Edge, Notepad, VS Code, Word under Win10/11 x64 and 100/125/150% DPI, including negative-coordinate monitors. Pay particular attention to noactivate toolbar/menu click and Replace focus.
+- P1: Explain/Summarize and Quick Compose remain **not implemented**, even if visible in earlier UX prototype.
+- Future Windows-specific refinements: selection via keyboard, app exclusions, more tolerant UIA traversal, clipboard preservation of non-text formats, improved source-app replace transactions.
+
+See `current_plan.md` section 4A for detailed acceptance matrix and next plan.

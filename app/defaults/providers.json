@@ -1,0 +1,7 @@
+{
+  "Google Translate Free": {
+    "base_url": "https://translate.googleapis.com",
+    "api_key": "",
+    "models": ["google-translate"]
+  }
+}
