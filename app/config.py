@@ -575,6 +575,8 @@ def _build_provider_section(values: dict[str, Any], *, config_path: Path) -> Pro
             # api_key, or models.
             merged = dict(override) if isinstance(override, dict) else {}
             merged.update(portable)
+            if name.casefold() == "trial":
+                merged["type"] = "ai_trial"
 
             portable_models = list(portable.get("models", []))
             requested_model = str(merged.get("model", "")).strip()

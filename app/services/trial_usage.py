@@ -62,6 +62,15 @@ class TrialUsageStore:
     def _touch_current_day(self) -> None:
         self._state(append_check=True)
 
+    def claim_update_check(self) -> bool:
+        with self._lock:
+            today = _today()
+            if self._store.load().get("last_update_check_date") == today:
+                return False
+            # Count the attempt; manual checks can retry after an offline startup.
+            self._store.update(last_update_check_date=today)
+            return True
+
     def remaining(self, api_key: str) -> int:
         if not api_key.strip():
             return TRIAL_DAILY_BUDGET_VND

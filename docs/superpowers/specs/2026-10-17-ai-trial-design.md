@@ -6,6 +6,7 @@ Status: implemented in source, including the user's revised streaming and estima
 
 - Fresh source/packaged defaults contain Google Translate Free and Trial, with Google Free active. Preserve existing personal catalogs; existing users can add Trial through **+ Trial**.
 - Trial uses `https://api.vilao.ai/v1` and gateway model IDs `gemini-3.8-flash`, `gpt-6-luna`, `gpt-6-sol`. Validate the fixed connection/model allowlist on load, save and provider creation, including imported or renamed profiles.
+- Hotfix 0.4.1.10: identify Trial by explicit `ai_trial` type or reserved catalog name `Trial`, never by gateway URL alone. Regular providers may use the same gateway with other models. Renamed Trial identity stays in config overrides; a portable catalog without type/name metadata is imported as a regular provider.
 - Shipped keys are empty. The local `trial.json` and its personal key must stay out of Git/build artifacts. A missing Trial key is a setup state; attempting translation explains how to enter one.
 - Reuse the existing OpenAI-compatible transport (Responses, Chat Completions or Completions), workers, prompts, cache, popup and save/apply behavior. Keep custom-provider support.
 

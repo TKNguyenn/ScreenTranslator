@@ -15,8 +15,8 @@ def trial_model_label(model: str) -> str:
 
 
 def is_trial_profile(values: Mapping[str, Any]) -> bool:
-    return (str(values.get("type", "")).strip().lower() == TRIAL_TYPE
-            or str(values.get("base_url", "")).strip().rstrip("/").lower() == TRIAL_BASE_URL)
+    # Custom providers can use the same gateway without Trial restrictions.
+    return str(values.get("type", "")).strip().lower() == TRIAL_TYPE
 
 
 def trial_profile_values(values: Mapping[str, Any]) -> dict[str, Any]:

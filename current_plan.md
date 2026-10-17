@@ -1,9 +1,9 @@
 # CURRENT PLAN - AI SCREEN TRANSLATOR
 
-**Project:** AI Screen Translator for Windows
-**Source status:** V0.4.1.9 + AI Trial (unreleased source changes; installer rebuild pending)
-**Primary platform:** Windows 10/11 x64
-**Recommended Python for source builds:** 3.11 / 3.12
+**Project:** AI Screen Translator for Windows  
+**Source status:** V0.4.1.10 provider-save hotfix + daily startup update checks; V0.4.1.9 was published on 2026-10-17.
+**Primary platform:** Windows 10/11 x64  
+**Recommended Python for source builds:** 3.11 / 3.12  
 **Planning rule:** ưu tiên khả năng dịch nhanh từ bôi đen (Quick UX) trước Live Screen, nhưng giữ kiến trúc tái sử dụng cho Region -> Live Screen -> PDF. Không viết feature one-off.
 
 ---
@@ -28,6 +28,20 @@
 - UI coverage includes the new page/icon, editable shortcut emission and duplicate validation. Full suite: **189 tests pass**; compile and native offline self-check pass.
 
 ---
+
+## Daily startup update check (2026-10-17, V0.4.1.10)
+
+- User accepted the provider-save fix and requested automatic update checks when reopening the app on a new day, sharing Trial data.
+- TrialUsageStore atomically claims `last_update_check_date` in the same data/trial_usage.json, independently of the two-check quota history. First startup checks; subsequent startups on the same Vietnam calendar day skip; a later day checks again even after several days away. Trial writes/reset preserve the marker and quota data.
+- Controller schedules this after showing the main window via a zero-delay Qt timer and reuses the manual asynchronous metadata-check path. It never starts a download automatically. Offline attempts count for the day; manual retry is unrestricted. Marker write errors log and skip automatic checking without blocking startup.
+- Validation includes startup wiring, same-day restarts, skipped days, quota preservation/reset, concurrent Trial writes, manual retry and avoiding automatic download. Verified: 196 unit/widget tests and compileall pass; rebuilt 0.4.1.10 Setup succeeds. Packaged offline self-check passes all 8 checks, and archive inspection confirms the daily startup wiring and marker method are bundled. Evidence: artifacts/daily-update-tests.log, daily-update-build.log and daily-update-self-check.json. Full install/uninstall and live GitHub checks were not repeated; no sync/push/release performed.
+
+## Provider save hotfix (2026-10-17)
+
+- Reproduced the save failure when a regular provider uses the Trial gateway with a model outside the Trial allowlist. URL-based Trial detection incorrectly applied Trial restrictions and blocked the entire provider save before disk writes.
+- Trial identity now requires `type=ai_trial` or the reserved catalog name `Trial`. Custom providers sharing the gateway keep their model list and OpenAI-compatible behavior. Renamed Trial profiles retain their type in config overrides; a renamed portable-only export needs Trial type reapplied to retain Trial behavior.
+- Validation: 191 tests pass, including regression coverage for parsing/catalog save/reload/factory and UI-to-controller saves from every profile. Compileall passes. Local 0.4.1.10 Setup build and packaged offline self-check pass (8 app checks plus frozen Trial identity regression); evidence: artifacts/provider-save-hotfix-self-check.json. No hotfix publication requested/performed.
+- No installed personal configuration/catalog was edited. Existing 0.4.1.9 EXEs need the new installer to receive this fix.
 
 # 1. Mục tiêu sản phẩm dài hạn
 

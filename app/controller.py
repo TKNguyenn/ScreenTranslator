@@ -50,6 +50,7 @@ from app.services.clipboard import ClipboardSelectionService
 from app.services.foreground_tracker import ForegroundWindowTracker
 from app.services.hotkeys import HotkeyService
 from app.services.runtime_settings import RuntimeSettingsStore
+from app.services.trial_usage import TrialUsageStore
 from app.services.window_service import WindowService
 from app.services.updates import UpdateManager, Release, installed_app_root, launch_installer, version_tuple
 from app.version import APP_VERSION
@@ -359,6 +360,7 @@ class AppController(QObject):
             f"Ready | provider={self._profile_name} | model={model} | target={self._target_language}",
         )
         logger.info("Application started")
+        QTimer.singleShot(0, self._check_updates_on_startup)
 
         if self._startup_provider_error:
             self._show_error_dialog(
@@ -384,11 +386,23 @@ class AppController(QObject):
         self._ocr_worker.stop()
         self._translation_worker.stop()
 
+    def _check_updates_on_startup(self) -> None:
+        try:
+            due = TrialUsageStore(self._config.data_dir / "trial_usage.json").claim_update_check()
+        except OSError:
+            logger.warning("Cannot persist daily update check; skipping automatic check", exc_info=True)
+            return
+        if due:
+            self._check_for_updates()
+
+    def _check_for_updates(self) -> None:
+        self._main_window.set_update_state("Đang kiểm tra GitHub…", "Checking…", busy=True)
+        self._updates.check()
+
     @Slot()
     def _on_update_clicked(self) -> None:
         if self._available_update is None:
-            self._main_window.set_update_state("Đang kiểm tra GitHub…", "Checking…", busy=True)
-            self._updates.check()
+            self._check_for_updates()
             return
         try:
             installed_app_root()

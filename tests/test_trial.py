@@ -5,8 +5,9 @@ import json
 import os
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -31,6 +32,30 @@ def trial(**changes):
 
 
 class TrialTests(unittest.TestCase):
+    def test_custom_gateway_profile_is_not_trial_and_survives_save_reload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = {"base_url": URL, "api_key": "synthetic-key",
+                   "model": "gemini-3.7-flash", "models": ["gemini-3.7-flash", "custom-model"]}
+            for values in (raw, dict(raw, type="openai_compatible")):
+                profile = provider_profile_from_dict(values)
+                self.assertEqual(profile.type, "openai_compatible")
+                self.assertEqual(profile.model, raw["model"])
+                self.assertEqual(list(profile.models), raw["models"])
+            store = ProviderCatalogStore(root / "providers.json")
+            store.replace_all({"VILAO": raw, "Trial": {"base_url": URL, "models": list(MODELS)}})
+            (root / "config.json").write_text(json.dumps({"providers": {"active_profile": "VILAO"}}))
+            with patch.dict(os.environ, {"APP_CONFIG_PATH": str(root / "config.json")}):
+                config = AppConfig.load()
+            custom = config.providers.profiles["VILAO"]
+            self.assertEqual(custom.type, "openai_compatible")
+            self.assertEqual(custom.model, raw["model"])
+            self.assertEqual(list(custom.models), raw["models"])
+            self.assertEqual(config.providers.profiles["Trial"].type, "ai_trial")
+            provider = create_translation_provider(config)
+            self.addCleanup(provider.close)
+            self.assertIs(type(provider), OpenAICompatibleProvider)
+
     def test_frozen_defaults_seed_once_without_overwriting_existing_catalog(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -180,6 +205,45 @@ class TrialUiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_save_from_each_provider_with_custom_trial_gateway(self):
+        from app.controller import AppController
+        from app.services.config_store import ConfigFileStore
+
+        config = replace(AppConfig(), providers=ProviderSection(active_profile="Custom", profiles={
+            "Custom": ProviderProfile(base_url=URL, api_key="synthetic-key",
+                                      model="custom-model", models=("custom-model",)),
+            "Google Translate Free": provider_profile_from_dict({
+                "base_url": "https://translate.googleapis.com", "models": ["google-translate"]}),
+            "Trial": trial(api_key="synthetic-key", model=MODELS[2]),
+        }))
+        window = MainWindow(self.app, config)
+        self.addCleanup(window.deleteLater)
+        self.addCleanup(window.allow_close)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            controller = SimpleNamespace(
+                _config=config, _profile=config.providers.profiles["Custom"],
+                _provider_catalog_store=ProviderCatalogStore(root / "providers.json"),
+                _config_store=ConfigFileStore(root / "config.json"),
+                _runtime_settings=Mock(), _reload_config_internal=Mock(return_value=True),
+                _tray=Mock(), _show_error_dialog=Mock(),
+            )
+            window.save_providers_requested.connect(
+                lambda profiles, active: AppController._save_provider_configuration(controller, profiles, active))
+            for row, name in enumerate(config.providers.profiles):
+                with self.subTest(provider=name):
+                    window._provider_list.setCurrentRow(row)
+                    window._active_profile_combo.setCurrentText(name)
+                    window._save_and_apply()
+                    controller._show_error_dialog.assert_not_called()
+                    controller._reload_config_internal.assert_called_with(preferred_profile=name)
+                    with patch.dict(os.environ, {"APP_CONFIG_PATH": str(root / "config.json")}):
+                        restored = AppConfig.load()
+                    self.assertEqual(restored.providers.active_profile, name)
+                    self.assertEqual(restored.providers.profiles["Custom"].type, "openai_compatible")
+                    self.assertEqual(restored.providers.profiles["Custom"].model, "custom-model")
+                    self.assertEqual(restored.providers.profiles["Trial"].model, MODELS[2])
 
     def test_compact_editor_switches_saves_and_reloads_without_quota_numbers(self):
         config = replace(AppConfig(), providers=ProviderSection(active_profile="Google Translate Free", profiles={

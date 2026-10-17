@@ -83,7 +83,7 @@ Bấm **Check for updates** ở sidebar để kiểm tra bản ổn định mớ
 - Nếu đã mới nhất, app hiển thị **Latest version** cùng phiên bản hiện tại.
 - Nếu có bản mới, bấm **Update to…** để tải bộ cài. App kiểm tra file tải xuống, thoát để cài vào thư mục hiện tại rồi mở lại.
 
-Cấu hình, provider, prompt và dữ liệu được giữ khi cập nhật. App chỉ kiểm tra khi bạn bấm nút. Cập nhật bằng bộ cài áp dụng cho bản Windows đã đóng gói; nếu chạy từ source, cập nhật mã bằng Git.
+Cấu hình, provider, prompt và dữ liệu được giữ khi cập nhật. App tự kiểm tra một lần mỗi ngày khi mở, tính theo giờ Việt Nam; lần đầu mở cũng kiểm tra. Bạn vẫn có thể bấm nút để kiểm tra thủ công hoặc thử lại khi mất mạng. App chỉ tải/cài bản mới khi bạn bấm cập nhật. Cập nhật bằng bộ cài áp dụng cho bản Windows đã đóng gói; nếu chạy từ source, cập nhật mã bằng Git.
 
 ## Cấu hình và gỡ cài đặt
 
