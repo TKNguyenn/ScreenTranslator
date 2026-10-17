@@ -1,11 +1,12 @@
 {
-  "VietAPI": {
-    "base_url": "https://api.example.com/v1",
-    "api_key": "replace_me",
-    "models": [
-      "gpt-model",
-      "deepseek-model",
-      "gemini-model"
-    ]
+  "Google Translate Free": {
+    "base_url": "https://translate.googleapis.com",
+    "api_key": "",
+    "models": ["google-translate"]
+  },
+  "Trial": {
+    "base_url": "https://api.vilao.ai/v1",
+    "api_key": "",
+    "models": ["gemini-3.8-flash", "gpt-6-luna", "gpt-6-sol"]
   }
 }

@@ -1,6 +1,6 @@
 # AI Screen Translator — Windows release
 
-Run AI-Screen-Translator-0.4.1.8-Setup.exe to install for the current Windows user.
+Run AI-Screen-Translator-0.4.1.9-Setup.exe to install for the current Windows user.
 Python and administrator access are not required. Windows 10/11 x64 only.
 Launch AI Screen Translator from Desktop or Start Menu.
 Setup shows the default destination and lets you choose another folder with Browse.
@@ -13,6 +13,19 @@ It does not include the developer's API keys, providers, custom prompts or histo
 Use Provider & Model to add your own provider or import your own providers.json.
 Cloud providers require internet and may charge for usage; Google Free is unofficial.
 OCR models are bundled and run locally.
+
+CHECK FOR UPDATES
+Click Check for updates at the bottom of the sidebar. It contacts only the public
+TKNguyenn/ScreenTranslator latest stable release API; no provider keys or translated text are sent.
+If current, it shows Latest version: v...; newer development builds are never downgraded.
+If newer, click Update to v... to download with progress, verify GitHub's SHA256/size,
+exit the app, install silently in the same folder, then restart. Settings/catalogs/data survive.
+Network, missing-asset or integrity errors allow retry without starting an installer.
+Closing the app while downloading cancels and removes the partial download.
+Automatic installation requires the installed Windows version; Python runs update source through Git.
+Version 0.4.1.8 needs this Setup once to acquire the updater. No automatic checks at startup.
+Downloads/helper logs live in the install folder's data/updates and are removed on uninstall.
+After a successful update the large downloaded installer is deleted; small helper/log files remain.
 
 INSTALL LOCATION
 %LOCALAPPDATA%\Programs\AIScreenTranslator
@@ -58,7 +71,19 @@ BUILD FROM SOURCE
 Install requirements.txt and PyInstaller 6.22.3; install Inno Setup 7 (or >= 6.6).
 Run powershell -ExecutionPolicy Bypass -File packaging/build.ps1
 Optionally pass -Iscc with the full path to ISCC.exe.
-Output: release/AI-Screen-Translator-0.4.1.8-Setup.exe, release/Uninstall.exe and release/SHA256.txt.
-The small launcher uses the Windows .NET Framework C# compiler; no additional Python bundle is needed.
+Output: release/AI-Screen-Translator-0.4.1.9-Setup.exe, release/Uninstall.exe and release/SHA256.txt.
+The small uninstall/update helpers use the Windows .NET Framework C# compiler; no additional Python bundle is needed.
 For unattended uninstall, the native uninstaller accepts /DATA=keep (default) or /DATA=all.
 PyInstaller stages the app in dist/ScreenTranslator; keep its _internal folder with the exe.
+
+PUBLISH AN UPDATE
+Increase app/version.py, run the build and tests, then create a stable GitHub release in
+TKNguyenn/ScreenTranslator tagged v<version>. Attach AI-Screen-Translator-<version>-Setup.exe
+and wait for upload to finish. The tag and asset filename must match; the API must expose
+the asset's sha256 digest. Upload only the Setup executable; Uninstall.exe is included in Setup
+and SHA256.txt remains a local verification output. Use the title and release-notes template in
+docs/Release_Workflow.md, including actual changes for each update. GitHub adds source archives
+automatically. Draft/prerelease/source-only releases are not install candidates.
+Do not commit release/build/dist/data or personal config/catalog/.env files into Git.
+No publishing is performed by the local build. Test with python tests/windows_update_smoke.py --live
+to verify native handoff and the current public download without installing the public release.

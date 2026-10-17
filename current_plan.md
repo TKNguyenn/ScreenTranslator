@@ -1,10 +1,31 @@
 # CURRENT PLAN - AI SCREEN TRANSLATOR
 
-**Project:** AI Screen Translator for Windows  
-**Current release:** V0.4.1.8 colocated app/config/data + two-mode Uninstall.exe (clean second-PC acceptance pending)  
-**Primary platform:** Windows 10/11 x64  
-**Recommended Python for source builds:** 3.11 / 3.12  
+**Project:** AI Screen Translator for Windows
+**Source status:** V0.4.1.9 + AI Trial (unreleased source changes; installer rebuild pending)
+**Primary platform:** Windows 10/11 x64
+**Recommended Python for source builds:** 3.11 / 3.12
 **Planning rule:** ưu tiên khả năng dịch nhanh từ bôi đen (Quick UX) trước Live Screen, nhưng giữ kiến trúc tái sử dụng cho Region -> Live Screen -> PDF. Không viết feature one-off.
+
+---
+
+## AI Trial — implemented in source (2026-10-17)
+
+- Follow-up: Trial exposes Endpoint (`auto`, `responses`, `chat_completions`, `completions`); new profiles default to auto and existing saved modes are retained. Selection survives save/reload and factory validation; URL/paths/models remain pinned. On every app/store startup, the local usage file compares the current Vietnam date/time with the latest check, resets after a day change, saves the new check and keeps only two checks. The visible timer still checks within one minute. Endpoint routing/fallback, startup history/reset and visible day-change tests added: **188 tests pass**, compile and all seven native offline checks pass; updated 1280px/900px renders in artifacts/trial-ui/trial-endpoint-*.png.
+- Fresh packaged defaults and source examples contain exactly Google Translate Free + Trial; Google Free remains active with no key required. Existing user catalogs are not overwritten. Existing users can add the built-in profile with **+ Trial** and save/apply.
+- Trial connection/model definition is in `app/trial.py`, based on the user-supplied local `trial.json`: fixed gateway, three selectable models, empty shipped key. Local trial.json is ignored by Git and excluded from the publication checklist; it is not used as a packaged secret/config source.
+- Trial editor shows API key, priced model selection and the original three streaming overrides (Ultra Fast / Fast / Quality, each inherit/on/off). This supersedes the initial one-switch interpretation. Labels show Luna from 1 VND/request, Flash from 3, Sol from 4; raw model IDs remain in saved settings and API payloads. Advanced connection fields/model editing stay hidden for Trial, while custom providers retain their editor. Factory/config/catalog normalization pins the built-in settings after import/save/reload/rename; it is not server authorization.
+- User clarified that the slim white-on-dark quota bar should be a **local estimate** rather than wait for a gateway API. It starts at 100 VND/day, with no numeric quota labels, and deducts the selected model's fixed illustrative price once after a successful network translation or provider test. Cache hits and failed requests do not deduct. The note below explicitly says the estimate is not accurate and actual cost depends on text length.
+- `TrialUsageStore` reuses atomic RuntimeSettingsStore writes in data/trial_usage.json, serializes concurrent workers, identifies keys by SHA256 without storing the key, survives restart and resets the local estimate after the startup/current-date check detects a new Vietnam calendar day (UTC+7). It stores only the current spent map and the two latest date/time checks. The bar refreshes on key/form changes and results, and once per minute while visible. Zero only empties the bar; it does not block requests or claim the gateway is exhausted. This file is local to each machine, not a shared balance.
+- `TrialProvider` wraps the existing OpenAI-compatible transport to record one estimate after successful normal/streaming completion; cache bypasses the provider. Local write failure keeps the successful translation. Reuse worker/popup/cache/prompts; no new dependency or billing server. Empty-key Trial can remain inactive; using it without a key gives setup guidance.
+- Verification: **188 unit/widget tests pass**, including 13 Trial tests covering fixed settings/import restrictions, raw model IDs with priced labels, endpoint selection/routing/auto fallback, independent streaming, clean bootstrap/catalog retention, save/reload, per-key/day persistence, two-check startup reset, visible daily refill, concurrency and success/cache/error/stream accounting. Final compileall and all seven native offline source self-checks pass; 1280px/900px UI renders inspected. Details recorded in the handoff.
+- Evidence: `artifacts/trial-ui/` and `artifacts/trial-source-self-check.json`. Trial-specific design/plan: `docs/superpowers/specs/2026-10-17-ai-trial-design.md`, `docs/superpowers/plans/2026-10-17-ai-trial.md`.
+- Pending: real gateway key/model/streaming acceptance and provider-side daily-budget validation. No live paid request, installer rebuild, sync, push or release for this change. The existing Setup executable predates Trial and must be rebuilt/verified against the accepted source before publication. App version remains 0.4.1.9 for now; select the release version before building/publishing.
+
+## Hotkey settings follow-up (2026-10-17)
+
+- Added a dedicated **Cài đặt** sidebar page with seven editable `QKeySequenceEdit` fields: translate selection, translate and replace, Live toggle, Region Translate and three target-language shortcuts.
+- Hotkeys are normalized to the `keyboard` package format, validated as non-empty and unique, and saved atomically under `config.json.hotkeys` with release delay and suppress behavior. Save & apply reloads the runtime and re-registers global hotkeys without restarting the app; reset restores defaults.
+- UI coverage includes the new page/icon, editable shortcut emission and duplicate validation. Full suite: **189 tests pass**; compile and native offline self-check pass.
 
 ---
 
@@ -40,6 +61,14 @@ Nguyên tắc quan trọng:
 
 ---
 
+
+## V0.4.1.9 - GitHub in-app updates (2026-10-16)
+
+Replace sidebar's Aurora/tray footer with Check for updates, version/status and download progress. Manual checks only against https://api.github.com/repos/TKNguyenn/ScreenTranslator/releases/latest. Numeric stable versions; never downgrade. Validate exact repository/tag/installer filename, positive bounded size and GitHub SHA256. Native Qt networking keeps the UI responsive, handles HTTPS redirects/timeouts and streams a partial file under app/data/updates. Bad/truncated/oversized downloads, network errors and shutdown cancel without executing anything.
+
+An available release changes the button to Update to v... . Installed Windows builds download/verify, copy a native C# helper to the download directory, hand off and quit. Helper waits for app exit, rechecks/locks SHA256, runs existing Inno Setup silently with the exact current /DIR and /UPDATE=1, restarts only on success, deletes the large installer. /UPDATE=1 does not recreate a previously omitted desktop shortcut. Source runs can check but install through Git/Setup. Catalog/config/data retention uses the existing installer. Public API currently serves v0.4.1.8 with verified asset digest; 0.4.1.9 requires one manual Setup install to bootstrap updater and a new GitHub release published by the user. Current workspace has no .git; no push/publish performed.
+
+Verified: 175 tests pass, source compile passes, compact sidebar preview inspected. Real Qt HTTPS downloads the public v0.4.1.8 installer and verifies size/SHA256 without executing it; native fixture confirms waiting/quoted target/silent args/relaunch/large-file cleanup (artifacts/update-smoke.json). Real 0.4.1.9 frozen Qt/TLS/UIA/OCR plus install/reinstall/both uninstall modes pass (17 checks, artifacts/release-install-uninstall.json). Targeted real Setup /UPDATE=1 install/reinstall confirms helper inclusion, no unsolicited desktop shortcut and byte-identical config/catalog retention (artifacts/update-installer-smoke.json). release/AI-Screen-Translator-0.4.1.9-Setup.exe built and SHA256 verified. Future-version end-to-end acceptance, clean second-PC and signing remain pending.
 
 ## V0.4.1.8 - Combined installation and data location (2026-10-16)
 

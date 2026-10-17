@@ -8,9 +8,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
     from PySide6.QtCore import Qt
-    from PySide6.QtGui import QFontDatabase
+    from PySide6.QtGui import QFontDatabase, QKeySequence
     from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QScrollArea
-    from app.config import AppConfig, FeatureSection, ProviderProfile, ProviderSection
+    from app.config import AppConfig, FeatureSection, ProviderProfile, ProviderSection, parse_hotkey_section
     from app.ui.main_window import MainWindow
     from app.ui.theme import apply_theme, asset_icon
     QT_AVAILABLE = True
@@ -43,8 +43,8 @@ class OceanUiTests(unittest.TestCase):
 
     def test_all_navigation_pages_preserved_and_icons_loaded(self):
         self.assertFalse(asset_icon().isNull())
-        self.assertEqual(self.window._nav.count(), 6)
-        for index in range(6):
+        self.assertEqual(self.window._nav.count(), 7)
+        for index in range(7):
             self.assertFalse(self.window._nav.item(index).icon().isNull())
             self.window._nav.setCurrentRow(index)
             self.assertEqual(self.window._pages.currentIndex(), index)
@@ -83,9 +83,19 @@ class OceanUiTests(unittest.TestCase):
         self.window._save_quick_ux()
         self.assertEqual(saved[0]["selection_delay_ms"], 350)
 
+    def test_hotkey_settings_emit_and_validate(self):
+        saved = []
+        self.window.hotkeys_settings_requested.connect(saved.append)
+        self.window._nav.setCurrentRow(6)
+        self.window._hotkey_edits["translate_selection"].setKeySequence(QKeySequence("Ctrl+T"))
+        self.window._save_hotkeys()
+        self.assertEqual(saved[0]["translate_selection"], "ctrl+t")
+        with self.assertRaises(ValueError):
+            parse_hotkey_section({"translate_selection": "alt+t", "target_vi": "alt+t"})
+
     def test_compact_form_pages_scroll_and_no_horizontal_overflow(self):
         self.window.resize(900, 620)
-        for index in (0, 2, 3, 4, 5):
+        for index in (0, 2, 3, 4, 5, 6):
             self.window._nav.setCurrentRow(index)
             self.app.processEvents()
             page = self.window._pages.widget(index)

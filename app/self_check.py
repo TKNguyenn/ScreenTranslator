@@ -23,12 +23,30 @@ def run_self_check(report_path: Path) -> int:
         apply_theme(app)
         assert not asset_icon().isNull(), "App icon is missing"
         window = MainWindow(app, config)
+        from PySide6.QtNetwork import QSslSocket
+        from app.services.updates import UpdateManager
+        assert QSslSocket.supportsSsl(), "Qt HTTPS backend is missing"
+        updater = UpdateManager()
+        assert window._check_updates_button.text() == "Check for updates"
+        updater.close()
+        report["checks"].append("Update button and Qt HTTPS backend (no network)")
         window.resize(1000, 720)
         window._add_google_provider("Google Translate Free")
         assert window._models_group.isHidden() and window._stream_group.isHidden()
         window._add_google_provider("Google Cloud Translate")
         assert window._api_key_edit.isEnabled()
         report["checks"].append("Qt theme, icons, manager and Google forms")
+        window._add_trial_provider()
+        assert window._base_url_edit.isHidden() and window._models_list.isHidden()
+        assert not window._endpoint_combo.isHidden() and window._endpoint_combo.isEnabled()
+        assert not window._trial_group.isHidden()
+        assert not window._stream_group.isHidden()
+        assert window._trial_quota.value() == 100 and not window._trial_quota.isTextVisible()
+        report["checks"].append("Trial editor, endpoint selector, per-mode streams and local estimate (no network)")
+        window._nav.setCurrentRow(6)
+        assert window._nav.currentItem().text() == "Cài đặt"
+        assert len(window._hotkey_edits) == 7
+        report["checks"].append("Hotkey settings page and editable shortcuts (no registration)")
         toolbar = QuickToolbar(config.quick_ux)
         popup = QuickTranslationPopup(config.quick_ux)
         popup.resize(550, 420)

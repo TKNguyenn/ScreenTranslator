@@ -36,42 +36,8 @@
   },
   "providers": {
     "catalog_path": "providers.json",
-    "active_profile": "third_party",
-    "profile_overrides": {
-      "third_party": {
-        "api_key_env": "THIRD_PARTY_API_KEY",
-        "model": "YOUR_MODEL_ID",
-        "streaming_override": {
-          "ultra_fast": false
-        }
-      },
-      "deepseek_example": {
-        "api_key_env": "THIRD_PARTY_API_KEY",
-        "model": "deepseek-chat",
-        "endpoint_mode": "chat_completions",
-        "streaming_override": {
-          "ultra_fast": false,
-          "fast": false
-        }
-      },
-      "glm_example": {
-        "api_key_env": "THIRD_PARTY_API_KEY",
-        "model": "glm-4.5",
-        "endpoint_mode": "chat_completions"
-      },
-      "openai_official_example": {
-        "api_key_env": "OPENAI_API_KEY",
-        "model": "gpt-5.6-luna",
-        "endpoint_mode": "responses",
-        "streaming_override": {
-          "ultra_fast": true
-        }
-      },
-      "mock": {
-        "type": "mock",
-        "model": "mock-v2"
-      }
-    }
+    "active_profile": "Google Translate Free",
+    "profile_overrides": {}
   },
   "ui": {
     "popup_width": 620,

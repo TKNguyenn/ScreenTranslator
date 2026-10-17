@@ -1,316 +1,129 @@
-# AI Screen Translator V0.4.1.8 - Windows App
+﻿# AI Screen Translator
 
-## V0.4.1.8 — App và dữ liệu chung một thư mục (2026-10-16)
+Ứng dụng dịch văn bản trên Windows: bôi đen để dịch nhanh, chụp một vùng màn hình để nhận diện chữ, hoặc dịch và thay thế trực tiếp trong ô đang nhập. Bạn có thể dùng Google Translate Free không cần API key, hoặc kết nối dịch vụ AI của mình.
 
-Chạy [Setup 0.4.1.8](release/AI-Screen-Translator-0.4.1.8-Setup.exe) để cài hoặc cập nhật. Không cần Python hay quyền admin. Setup hiển thị đường dẫn mặc định, cho đổi bằng **Browse**; trang cuối có ô **Create a desktop shortcut**.
+Giao diện Dark Ocean với nền xanh biển sâu, điểm nhấn Cyan–Emerald và các cửa sổ dịch nổi giúp bạn đọc kết quả ngay bên cạnh nội dung đang làm việc.
 
-Tất cả dữ liệu đang sử dụng nằm trong thư mục cài đã chọn, mặc định `%LOCALAPPDATA%\Programs\AIScreenTranslator`:
+**[Tải ứng dụng cho Windows](https://github.com/TKNguyenn/ScreenTranslator/releases/latest)** · [Báo lỗi / góp ý](https://github.com/TKNguyenn/ScreenTranslator/issues)
 
-```text
-AIScreenTranslator/
-  ScreenTranslator.exe
-  Uninstall.exe
-  config.json
-  providers.json
-  prompts.json
-  data/                 # cache, runtime settings, logs
-  _internal/            # runtime và model OCR
-```
+## App làm được gì?
 
-Các file JSON được tạo khi chạy app lần đầu. Cache/log nằm trong `data`; `.env` nếu dùng cũng đặt cạnh file cấu hình. Chạy exe từ shortcut hay thư mục khác vẫn dùng đúng dữ liệu này. Project Python tiếp tục dùng dữ liệu trong project.
+| Tính năng | Cách sử dụng |
+| --- | --- |
+| **Dịch văn bản được chọn** | Bôi đen nội dung rồi dùng toolbar hoặc phím tắt để xem bản dịch trong popup. |
+| **Quick Toolbar** | Chọn nhanh **VI / EN / 繁** để dịch sang tiếng Việt, tiếng Anh hoặc tiếng Trung phồn thể. |
+| **Dịch vùng màn hình bằng OCR** | Khoanh vùng có chữ trong hình ảnh hoặc nội dung không thể bôi đen; app nhận diện chữ rồi dịch. |
+| **Dịch và thay thế** | Thay văn bản đang chọn trong ô nhập bằng bản dịch, không tự nhấn Enter hay gửi tin nhắn. |
+| **Popup linh hoạt** | Kéo để di chuyển, kéo cạnh hoặc góc để đổi kích thước; ghim cửa sổ, xem văn bản gốc và sao chép kết quả. |
+| **Nhiều dịch vụ dịch** | Dùng Google Translate Free, Google Cloud Translation hoặc API tương thích OpenAI. |
+| **Tùy chỉnh cách dịch với AI** | Chọn model, phong cách Engineer / Chat / Email, chỉnh prompt và bật streaming khi dịch vụ hỗ trợ. |
+| **Quản lý cấu hình** | Thêm, kiểm tra, nhập và xuất danh sách provider/model cùng các prompt riêng. |
+| **Cài đặt hotkey** | Đổi phím tắt dịch bôi đen, thay thế, OCR vùng màn hình, Live Translate và ngôn ngữ đích ngay trong app. |
+| **Dùng hằng ngày** | Chạy dưới khay hệ thống, gọi bằng phím tắt và dùng cache để tái sử dụng kết quả dịch. |
+| **Cập nhật trong app** | Kiểm tra GitHub Releases và cài bản cập nhật ngay từ ứng dụng. |
 
-Khi cập nhật từ bản lưu dữ liệu riêng ở `%LOCALAPPDATA%\AIScreenTranslator`, Setup chép config, provider, prompt, `.env` và `data` sang nếu thư mục mới chưa có cấu hình/catalog. Không ghi đè file hiện có. Bản cũ được giữ làm bản sao an toàn đến khi gỡ app; app mới chỉ đọc/ghi ở thư mục cài. Cài lại sau chế độ giữ catalog sẽ không nhập lại settings cũ.
+## Cài đặt
 
-## Gỡ cài đặt
+Yêu cầu **Windows 10 hoặc Windows 11, 64-bit** và kết nối Internet để sử dụng dịch vụ dịch.
 
-Thoát app từ tray, mở [Uninstall.exe](release/Uninstall.exe), file cùng tên trong thư mục cài hoặc Windows Settings → Apps. Hai lựa chọn loại trừ nhau:
+1. Mở [GitHub Releases](https://github.com/TKNguyenn/ScreenTranslator/releases/latest), tải file có tên kết thúc bằng **Setup.exe** trong phần **Assets**.
+2. Chạy bộ cài, giữ đường dẫn mặc định hoặc chọn thư mục cài đặt khác.
+3. Ở bước cuối, chọn có tạo shortcut trên desktop hay không rồi mở app.
 
-- **Giữ provider/prompt** (mặc định): gỡ app, shortcut, settings/cache/log; giữ nguyên `providers.json` và `prompts.json` ngay trong thư mục cài để dùng lại. API key trong provider cũng được giữ.
-- **Xóa hết**: xóa cả hai file trên và dữ liệu app, dọn bản dữ liệu cũ nếu có. Thư mục cài được xóa khi trống.
+Bản cài đặt đã kèm môi trường chạy và OCR, không cần cài Python hay quyền quản trị viên. Cài vào thư mục mà tài khoản Windows của bạn có quyền ghi để app lưu cấu hình và dữ liệu.
 
-Không xóa file riêng do bạn tự đặt trong thư mục cài, project source, file export hay các đường dẫn ngoài app bạn chủ động cấu hình. Nếu không sao lưu được catalog, chế độ giữ dừng trước khi xóa app. Nếu khôi phục lỗi, giữ thư mục recovery và thông báo đường dẫn.
+## Bắt đầu sử dụng
 
-Bản phát hành có Google Free mặc định, không đóng gói API key/cấu hình/lịch sử cá nhân trong project. Bộ cài chỉ nhận đường dẫn tối đa 180 ký tự để tránh lỗi Qt. Hướng dẫn build và kiểm thử: [Windows Release](docs/Windows_Release.md).
+### Chọn dịch vụ dịch
 
-## V0.4.1.5 — Google Translate Free + Google Cloud (2026-10-15)
+Bản cài mới có sẵn **Google Translate Free** và **Trial**. Mặc định app dùng Google Free và dịch sang **tiếng Việt**, nên bạn có thể thử dịch ngay mà không cần nhập API key.
 
-Thêm Google vào worker/cache hiện có, dùng được cho dịch bôi đen, toolbar, dịch và thay thế, và phần text sau Region OCR. Không thêm thư viện; dùng `httpx` đang có.
+Trong **Provider & Model**, bạn có thể chọn dịch vụ phù hợp:
 
-1. Thoát hẳn app cũ và chạy `python main.py`, kiểm tra **v0.4.1.5**.
-2. Mở **Provider & Model** → **+ Google Free** hoặc **+ Google Cloud**. Nút chỉ thêm/chọn profile để chỉnh; không đổi provider đang áp dụng.
-3. **Free:** không cần key, model `google-translate`. **Cloud:** nhập API key hoặc tên biến môi trường chứa key, model `nmt`; cần bật Cloud Translation API và billing trong Google Cloud.
-4. Chọn Google trong **Provider đang áp dụng** rồi **Lưu & áp dụng**. Có thể bấm **Test provider / model hiện tại** để gửi `Hello` từ English sang tiếng Việt. Test Cloud có thể phát sinh phí.
+| Dịch vụ | Cần chuẩn bị | Phù hợp khi |
+| --- | --- | --- |
+| **Google Translate Free** | Không cần API key | Muốn dịch nhanh và tiết kiệm chi phí. |
+| **ScreenTranslator AI Trial** | Liên hệ người phát triển để nhận key riêng | Muốn thử AI với danh sách model có sẵn. |
+| **Google Cloud Translation** | API key, bật Cloud Translation API và billing | Muốn dùng dịch vụ Google Cloud chính thức. |
+| **AI / API tương thích OpenAI** | Địa chỉ API, API key và model của nhà cung cấp | Muốn điều chỉnh cách diễn đạt bằng prompt và phong cách dịch. |
 
-Google dịch trực tiếp, không dùng prompt/style Engineer/Chat/Email/tốc độ AI hay streaming. Các điều khiển không áp dụng được khóa hoặc đánh dấu; thiết lập AI đã lưu được giữ lại khi đổi provider. Cache Google được dùng lại giữa các style/speed/prompt, vẫn phân biệt nội dung, ngôn ngữ nguồn/đích, provider và model.
+Sau khi chỉnh provider/model, bấm **Lưu & áp dụng**. Với Google, app dịch trực tiếp; prompt, phong cách AI và streaming không áp dụng.
 
-**Giới hạn:** Free dùng endpoint Web không chính thức, có thể bị chặn/giới hạn/ngừng hoạt động; văn bản được gửi đến Google qua URL GET. Cloud là dịch vụ chính thức có tính phí; allowance miễn phí không phải giới hạn chi tiêu. App không tự chuyển Free sang Cloud hoặc gọi API khi chỉ bôi đen.
+Trong **Trial**, nhập key được cấp, chọn **Endpoint** (`auto`, `responses`, `chat_completions` hoặc `completions`), model và chỉnh streaming riêng cho **Ultra Fast / Fast / Quality**. `auto` tự chọn endpoint phù hợp; URL và danh sách model được cấu hình sẵn. Giá cạnh model là ước lượng mỗi lượt: Luna từ 1đ, Flash từ 3đ, Sol từ 4đ; văn bản dài có thể tốn nhiều hơn.
 
-`providers.json` vẫn đúng 3 trường `base_url`, `api_key`, `models`; URL chuẩn Google được tự nhận diện khi import/reload. Key Cloud gửi qua header, không qua URL. Profile cũ và provider đang dùng không bị tự thay đổi. Thêm preset không ghi file cho tới khi Lưu & áp dụng. Hướng dẫn cấu hình: [Google Providers](docs/Google_Providers_V0_4_1_5.md).
+Thanh hạn mức không hiện số tiền, bắt đầu từ mốc ước lượng 100đ/ngày và giảm theo model sau mỗi lượt dịch hoặc kiểm tra kết nối thành công. Mỗi lần mở app, app đọc ngày/giờ Việt Nam hiện tại và so với lần kiểm tra gần nhất; nếu đã qua 00:00 thì xóa lượt dùng của ngày cũ, lưu mốc mới và chỉ giữ hai mốc kiểm tra gần nhất. Khi app đang mở, timer cũng kiểm tra tối đa mỗi phút. Kết quả lấy từ cache không trừ thêm. Đây là **ước lượng không chính xác**, không đồng bộ số dư gateway hoặc máy khác và không chặn dịch khi thanh hết. Hạn mức thật vẫn do gateway quản lý. Nếu đang dùng catalog cũ, bấm **+ Trial** để thêm mà vẫn giữ các provider của bạn.
 
-Đã kiểm tra **160 test PASS**, compile PASS, native Windows Google UI smoke PASS và Quick UX UI smoke PASS. Test mạng dùng `httpx.MockTransport`, không gọi Google thật hoặc dùng key của bạn.
+### Dịch bằng toolbar hoặc phím tắt
 
-## V0.4.1.4 — Giao diện toàn app (2026-10-14)
+1. Bôi đen đoạn văn bản bằng chuột trong ứng dụng đang dùng.
+2. Khi toolbar xuất hiện, bấm **VI**, **EN** hoặc **繁**.
+3. Đọc kết quả trong popup; kéo thanh tiêu đề để di chuyển, kéo cạnh hoặc góc dưới phải để đổi kích thước.
 
-Áp dụng **logo mẫu 1 (Glyph Slash)** và **giao diện mẫu 1 (Aurora Bento)** từ bộ `demo_UI_ver2`, điều chỉnh theo chức năng và layout hiện có. Theme Dark Ocean `#080E1A`, điểm nhấn Cyan `#38BDF8` chuyển sắc Emerald `#10B981` thống nhất trên Main Window, sáu trang điều hướng, tray/menu, hộp thoại, toolbar, popup dịch và vùng chọn OCR.
+Toolbar phụ thuộc vào khả năng cung cấp vùng chọn qua Windows UI Automation của ứng dụng đang dùng. Nếu toolbar không xuất hiện, thử **Alt+T**; với nội dung dạng ảnh hoặc không thể sao chép, dùng **Alt+S** để khoanh vùng OCR.
 
-- Tổng quan có Aurora hero, các thẻ hiển thị provider/model, chế độ dịch và ngôn ngữ/cache thực tế; nút chọn vùng gọi workflow OCR hiện có. Phím tắt lấy từ config.
-- Provider, Prompt Editor và Quick UX bố trí lại để dùng được ở cửa sổ 900×620; nội dung dài cuộn dọc.
-- Toolbar/popup có nền Dark Ocean **vẽ đặc**, viền chuyển sắc và nút dễ đọc. Hiệu ứng kính được thể hiện bằng lớp màu và ánh sáng, không làm nền xuyên qua nội dung app nguồn.
-- Popup từ toolbar vẫn kéo bằng tiêu đề/thông tin model, đổi kích thước bằng cạnh/góc dưới phải, giữ geometry khi streaming/dịch xong/lỗi và giữ kích thước trong phiên chạy.
-- Tài nguyên nằm trong `app/assets/`; chạy app không cần truy cập thư mục demo trên G:.
+Các phím tắt mặc định:
 
-Thoát hẳn phiên cũ rồi chạy `python main.py`; phiên bản mới là **v0.4.1.4**. Xem ảnh widget thật: [Tổng quan](artifacts/ocean-v0414/overview.png), [Toolbar và popup](artifacts/ocean-v0414/quick-surfaces.png), [Provider](artifacts/ocean-v0414/providers.png), [Quick UX cửa sổ nhỏ](artifacts/ocean-v0414/compact-4.png).
+| Phím tắt | Chức năng |
+| --- | --- |
+| **Alt+T** | Dịch văn bản đang chọn và mở popup. |
+| **Alt+Shift+T** | Dịch và thay thế văn bản đang chọn trong ô có thể chỉnh sửa. |
+| **Alt+S** | Chọn vùng màn hình, nhận diện chữ và dịch. |
+| **Alt+1** | Đổi ngôn ngữ đích sang tiếng Việt. |
+| **Alt+2** | Đổi ngôn ngữ đích sang tiếng Anh. |
+| **Alt+3** | Đổi ngôn ngữ đích sang tiếng Trung phồn thể. |
 
-Đã kiểm tra **142 test PASS**, compile PASS và native Windows Qt smoke PASS khi bật theme mới: nền đặc, topmost, không lấy focus, kéo popup và giữ geometry. Đây là kiểm tra UI với dữ liệu giả lập; chuỗi chọn chữ trong app bên ngoài → dịch qua provider thật và nhiều màn hình/DPI cần kiểm tra thực tế. Chi tiết: [Ocean UI Design](docs/Ocean_UI_Design_V0_4_1_4.md).
+Muốn đổi phím tắt, mở mục **Cài đặt** ở sidebar, bấm vào ô tương ứng rồi nhấn tổ hợp phím mới. Bấm **Lưu & áp dụng hotkey** để app kiểm tra trùng phím và đăng ký lại ngay; các thay đổi được lưu trong `config.json`.
 
-## V0.4.1.3 — Toolbar / popup redesign
+App có thể tiếp tục chạy trong khay hệ thống. Để thoát hoàn toàn, dùng menu của biểu tượng app tại đó.
 
-Toolbar và Quick Popup dùng nền xanh đậm **vẽ trực tiếp, không xuyên nội dung app nguồn**, viền rõ và nút có tương phản cao. Popup hiển thị phía trên app nguồn mà không lấy focus.
+## Cập nhật ứng dụng
 
-- Bấm VI / EN / 繁 trên toolbar để mở popup dịch.
-- **Di chuyển:** kéo tiêu đề `Bản dịch` hoặc phần thông tin provider/model.
-- **Đổi kích thước:** kéo các cạnh hoặc tay nắm ở góc dưới phải. Kích thước được giữ giữa các lần dịch trong cùng phiên chạy.
-- Khi streaming / dịch xong / có lỗi, popup giữ nguyên vị trí và kích thước đã chỉnh.
-- **Xem gốc:** mở phần văn bản gốc; kéo thanh phân cách để đổi tỷ lệ hai phần.
-- **Ghim:** giữ popup khi click ra ngoài. Esc / nút × vẫn đóng được.
+Bấm **Check for updates** ở sidebar để kiểm tra bản ổn định mới nhất trên GitHub.
 
-Thoát hẳn app từ tray rồi chạy lại `python main.py`; kiểm tra phiên bản **v0.4.1.3**. Đã kiểm tra 135 test, compile và native Windows Qt smoke (nền đặc, topmost, không lấy focus, kéo popup, giữ geometry). Ảnh giao diện render từ widget thật: [`artifacts/quickux-v0413-preview.png`](artifacts/quickux-v0413-preview.png).
+- Nếu đã mới nhất, app hiển thị **Latest version** cùng phiên bản hiện tại.
+- Nếu có bản mới, bấm **Update to…** để tải bộ cài. App kiểm tra file tải xuống, thoát để cài vào thư mục hiện tại rồi mở lại.
 
-## V0.4.1.2 — UIA selection detection hotfix
+Cấu hình, provider, prompt và dữ liệu được giữ khi cập nhật. App chỉ kiểm tra khi bạn bấm nút. Cập nhật bằng bộ cài áp dụng cho bản Windows đã đóng gói; nếu chạy từ source, cập nhật mã bằng Git.
 
-- Read TextPattern/ValuePattern through generic UIA `GetPattern`, including Custom/Pane controls without typed helper methods.
-- Search up to 12 ancestors and a bounded 64-node/6-level subtree of the source window when focus/hit-testing lands on a container.
-- Diagnostics reports controls examined, TextPatterns found and exception types without storing selected text.
-- Declare pointer-sized Win32 HWND signatures; explicitly close SQLite connections so Windows releases database files.
-- Verified locally: 124 unit/source tests PASS, compile PASS, synthetic native Windows RichEdit selection smoke PASS. Cross-application mouse/toolbar tests in Notepad, Edge/Chrome and VS Code still require validation.
+## Cấu hình và gỡ cài đặt
 
-When running directly with `python main.py`, exit the previous tray instance completely before restarting. Confirm tray version **v0.4.1.2**. If the toolbar is still absent, `Chẩn đoán / cấu hình` -> `Quick UX last probe` and `data/logs/app.log` now distinguish unsupported patterns, empty selection, foreground changes and provider errors. Passive probing still never sends Ctrl+C or calls the API.
+Cấu hình và dữ liệu nằm chung trong thư mục cài đặt, mặc định là `%LOCALAPPDATA%\Programs\AIScreenTranslator`:
 
-V0.4.1 phát triển trực tiếp từ V0.4.0. Milestone này đưa Quick UX lên trước Live Screen: **bôi đen text bằng chuột -> floating toolbar -> chọn VI/EN/繁 -> popup dịch**, vẫn giữ Region OCR, selection hotkeys, Provider Manager, Prompt Studio, cache và streaming override.
+| File / thư mục | Nội dung |
+| --- | --- |
+| `config.json` | Cấu hình ứng dụng. |
+| `providers.json` | Danh sách dịch vụ, model và thông tin kết nối. |
+| `prompts.json` | Các prompt tùy chỉnh. |
+| `data/` | Cache, thiết lập runtime và log. |
 
-**Thiết kế đã chốt:** tự hiện floating toolbar **mặc định ON**. Có thể tắt ở Main Window hoặc tray. *Không có API call nào chỉ vì highlight text.*
+Để gỡ app, chạy **Uninstall.exe** trong thư mục cài đặt hoặc mở **Windows Settings → Apps → AI Screen Translator → Uninstall**. Bạn có thể chọn giữ lại duy nhất `providers.json` và `prompts.json`, hoặc xóa toàn bộ dữ liệu thuộc app.
 
-## V0.4.1.1 - Fix auto-toolbar khong hien
+## Dữ liệu và phạm vi hỗ trợ
 
-V0.4.1 had an important Windows compatibility bug: its global mouse listener callback accepted four `pynput` arguments, while newer releases supply a fifth `injected` argument. A `TypeError` could silently stop the listener, so selecting text never displayed the toolbar. The callback now supports both forms and traps hook-thread exceptions. **No changes to translation prompts or provider settings.**
+- OCR xử lý ảnh ngay trên máy. Văn bản cần dịch được gửi tới dịch vụ bạn chọn; ảnh chụp OCR không được gửi tới dịch vụ dịch.
+- Việc chỉ bôi đen văn bản để hiện toolbar chưa gửi yêu cầu dịch. Yêu cầu được gửi khi bạn chọn thao tác dịch.
+- API key có thể được lưu dạng văn bản trong `providers.json`. Giữ riêng file này và bản xuất provider nếu có chứa key.
+- Google Translate Free dùng endpoint không chính thức, có thể bị giới hạn hoặc ngừng hoạt động. Google Cloud và các dịch vụ AI tính phí theo tài khoản của bạn.
+- Toolbar không hoạt động tự động trong mọi ứng dụng. **Live Screen Translate** và **dịch file PDF trực tiếp** hiện chưa được triển khai.
 
-V0.4.1.1 Diagnostics additionally displays `Quick UX mouse hook running` and `Quick UX last probe`. On Windows, check the tray version label is **v0.4.1.1** after quitting the previous instance (the app has a single-instance guard). Full instructions: [`docs/QuickUX_Windows_Troubleshooting.md`](docs/QuickUX_Windows_Troubleshooting.md).
+## Chạy từ source
 
-**Correct behavior:** mouse-select -> toolbar `VI | EN | 繁`; click a language to open the translation popup. Pure keyboard selection alone is not observed automatically. UIA may still be unavailable in some apps; manual `Alt+T` still works.
-
-## Quick UX — mới ở V0.4.1
-
-Khi m kéo bôi đen chữ (hoặc double-click chọn từ) trong một app Windows hỗ trợ UI Automation TextPattern:
-
-1. Đợi mặc định **250 ms** (chỉnh được 150–600ms), thanh **`VI | EN | 繁 | ⋯`** hiện gần vùng chọn.
-2. Bấm **VI / EN / 繁** để dịch 1 lần bằng provider/model, style, speed, custom prompt và streaming hiện tại.
-3. Popup nhỏ có **Sao chép, Thay thế, Văn bản gốc, Ghim và Đóng**; hỗ trợ streaming token khi được bật trong provider.
-4. `⋯` có **Dịch và thay thế** (theo target toàn app), **Cài đặt Quick UX**, **Ẩn toolbar**.
-5. Bấm Escape/click ngoài ẩn popup theo setting; Pin giữ popup trước click ngoài.
-
-**An toàn:** auto-detection sử dụng `pynput` mouse hook + Windows UI Automation `TextPattern.GetSelection`, không `Ctrl+C` hay gọi API khi chỉ bôi đen. Chỉ lệnh Replace rõ ràng mới kiểm tra vùng chọn lại và dùng clipboard để paste. Trong UIA password fields, không đọc selection. Nếu ứng dụng không cung cấp text selection qua UIA, toolbar không xuất hiện; dùng hotkey **Alt+T** như trước.
-
-### Quick UX Settings
-
-Vào **Main Window -> Quick UX**:
-
-- `Tự hiện toolbar khi bôi đen`: **ON** mặc định.
-- `Đợi sau khi chọn`: **250ms**.
-- `Nút`: VI, EN, 繁 (có thể bật/tắt từng nút, ít nhất một).
-- `Tự ẩn toolbar`: mặc định **8 giây**.
-- `Đóng popup khi click ngoài`: **ON**; Pin giữ popup.
-- `Giới hạn text`: mặc định 6000 ký tự; chọn quá dài sẽ không tự hiện toolbar.
-- **Lưu & áp dụng / Khôi phục mặc định** lưu ngay trong `config.json`, không restart.
-
-Tray có thêm checkbox **Tự hiện Quick Toolbar khi bôi đen**, cùng shortcut vào **Cài đặt Quick UX...**. Reload config cũng cập nhật Quick UX.
-
-### Test nhanh trên Windows
-
-- Thu nhỏ Main Window xuống tray; mở Edge/Chrome/Notepad, kéo bôi đen text, đợi ~250ms.
-- Nếu thấy toolbar, bấm VI; xác nhận popup dùng đúng model và chữ được dịch.
-- Copy và Pin; thử click ngoài, Escape. Muốn Replace hãy dùng trong ô có thể chỉnh sửa; app xác minh control/selection/window, không tự refocus cửa sổ nguồn và có thể từ chối khi không xác minh được. Kết quả Quick UX đã hủy không được chuyển qua đường Replace cũ.
-- Bỏ tick `Tự hiện Quick Toolbar...` trong tray; các hotkey cũ vẫn phải hoạt động.
-- Test ở màn hình khác DPI/monitor trái nếu có.
-
-**Chưa có trong P0:** Explain, Summarize và Quick Compose (để V0.4.2). Không đảm bảo UIA auto-selection trong tất cả app Windows; không có tự động Ctrl+C fallback vì ảnh hưởng clipboard. Native Qt/UIA smoke đã pass trên Windows hiện tại; ma trận ứng dụng và DPI rộng hơn vẫn cần kiểm tra.
-
-## Tính năng chính
-
-### Selection translation
-
-- `Alt+T`: dịch text đang bôi đen -> popup.
-- `Alt+Shift+T`: dịch và replace text đang bôi đen.
-- Không tự Enter/send.
-
-### Region Translate - mới trong V0.4.0
-
-Có ba cách bắt đầu:
-
-- Hotkey `Alt+S`.
-- Right-click tray -> **Dịch vùng màn hình**.
-- Main Window -> **Dịch vùng màn hình** -> **Chọn vùng và dịch**.
-
-Workflow:
-
-```text
-Chọn vùng
- -> capture PNG local
- -> RapidOCR local
- -> OCR text
- -> TranslationWorker
- -> provider/model đang chọn
- -> popup
-```
-
-Ảnh chụp **không được gửi tới translation provider**. Provider chỉ nhận text do OCR local nhận dạng.
-
-Selector:
-
-- Left-drag để chọn vùng.
-- `Esc` hoặc right-click để hủy.
-- Vùng quá nhỏ sẽ bị reject.
-- Selector mở trên monitor đang chứa con trỏ chuột.
-- Hỗ trợ nhiều monitor, nhưng V0.4.0 giới hạn một selection trong một monitor.
-
-### OCR
-
-Default:
-
-```json
-"ocr": {
-  "engine": "rapidocr",
-  "min_confidence": 0.45
-}
-```
-
-OCR chạy trong thread riêng (`OcrWorker`). RapidOCR được khởi tạo lazy nên lần Region Translate đầu tiên có thể chậm hơn các lần sau.
-
-### Prompt Studio
-
-Prompt override độc lập cho 9 tổ hợp:
-
-```text
-Ultra Fast x Engineer/Chat/Email
-Fast       x Engineer/Chat/Email
-Quality    x Engineer/Chat/Email
-```
-
-Prompt custom được lưu trong `prompts.json`; default prompt gốc không bị ghi đè và có thể reset bất kỳ lúc nào.
-
-### Provider Manager
-
-`providers.json` portable chỉ giữ:
-
-```json
-{
-  "Provider Name": {
-    "base_url": "https://example.com/v1",
-    "api_key": "...",
-    "models": ["model-a", "model-b"]
-  }
-}
-```
-
-Main Window hỗ trợ:
-
-- thêm/xóa/đổi tên provider;
-- thêm/xóa model;
-- chọn active model;
-- test provider/model;
-- import/export provider catalog;
-- streaming override theo provider.
-
-### Runtime reload
-
-**Reload config.json** đọc lại:
-
-- `config.json`
-- `providers.json`
-- `prompts.json`
-- `.env`
-
-V0.4.0 còn áp dụng live:
-
-- OCR engine/config;
-- Region Translate feature flag;
-- hotkey;
-- provider/model;
-- prompt;
-- cache/streaming.
-
-## Config files
-
-- `providers.json`: portable provider/base URL/API key/models.
-- `prompts.json`: custom prompt overrides.
-- `config.json`: app/runtime behavior, OCR, endpoint, streaming, hotkey, UI.
-- `data/runtime_settings.json`: lựa chọn provider/target/style/speed gần nhất.
-- `.env`: optional secret env variables/backward compatibility.
-- `current_plan.md`: roadmap chi tiết và architecture target.
-
-## Cài và chạy trên Windows
-
-Khuyến nghị Python 3.11 hoặc 3.12 x64.
-
-Chạy:
+Cài **Python 64-bit** với Python Launcher (`py`) và Git trên Windows, sau đó chạy trong PowerShell:
 
 ```powershell
-run.bat
+git clone https://github.com/TKNguyenn/ScreenTranslator.git
+cd ScreenTranslator
+.\run.bat
 ```
 
-`run.bat` sẽ tạo `.venv` và cài dependencies, bao gồm `rapidocr_onnxruntime` cho OCR local.
+`run.bat` tạo môi trường ảo, cài thư viện, tạo các file cấu hình từ mẫu nếu chưa có rồi khởi động app. Lần đầu cần Internet để tải thư viện. Nếu gặp lỗi, xem `data/logs/app.log`.
 
-Hoặc chạy thủ công:
+## Tài liệu và hỗ trợ
 
-```powershell
-py -3 -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python main.py
-```
+- [Hướng dẫn cài đặt, đóng gói và cập nhật trên Windows](docs/Windows_Release.md)
+- [Cấu hình Google Translate Free và Google Cloud](docs/Google_Providers_V0_4_1_5.md)
+- [Khắc phục sự cố toolbar và phím tắt trên Windows](docs/QuickUX_Windows_Troubleshooting.md)
+- [Lịch sử phát hành và bộ cài](https://github.com/TKNguyenn/ScreenTranslator/releases)
+- [Báo lỗi hoặc đề xuất tính năng](https://github.com/TKNguyenn/ScreenTranslator/issues)
 
-## Hotkey mặc định
-
-```text
-Alt+T        Translate Selection
-Alt+Shift+T  Translate + Replace
-Alt+S        Region Translate
-Alt+L        Live Translate placeholder (chưa triển khai)
-Alt+1        Target Vietnamese
-Alt+2        Target English
-Alt+3        Target Traditional Chinese
-```
-
-## Region Translate và DPI
-
-V0.4.0 capture screenshot trước khi overlay xuất hiện. Crop region map từ Qt logical coordinate sang pixel coordinate của screenshot bằng `scale_x/scale_y`, nhằm hỗ trợ Windows DPI scaling tốt hơn.
-
-Cần smoke-test thực tế trên:
-
-- 100%
-- 125%
-- 150%
-- multi-monitor khác DPI
-
-Nếu có crop lệch, đây là blocker cho V0.4.1 trước khi làm Live Translate.
-
-## Known limitations (V0.4.1)
-
-- Selection không kéo xuyên hai monitor.
-- Chưa có Live Screen Translate.
-- Chưa có PDF translation thực tế.
-- OCR Settings UI hiện chỉ hiển thị trạng thái; tuning sâu vẫn ở `config.json`.
-- Bản đóng gói đã chạy OCR thật trên Windows hiện tại; Region overlay trong app bên ngoài và nhiều mức DPI vẫn cần kiểm tra thực tế.
-
-## Verification
-
-Automated suite kiểm tra:
-
-- provider/config/prompt/cache cũ;
-- OCR config validation;
-- RapidOCR output normalization/confidence filtering;
-- OcrWorker queue/reload;
-- Region pipeline wiring;
-- tray/main window Region actions;
-- source compile.
-
-Xem `IMPLEMENTATION_HANDOFF.md` cho kiến trúc kỹ thuật và `current_plan.md` cho roadmap chi tiết. Tài liệu UX tham chiếu: `docs/QuickUX_Design_Spec_V0_4_1.md`.
+Khi báo lỗi, ghi rõ phiên bản Windows, ứng dụng đang dịch, dịch vụ đã chọn và các bước tái hiện. Nếu gửi log, hãy xóa API key và nội dung riêng tư trước khi đăng.

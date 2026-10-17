@@ -90,6 +90,7 @@ def main():
     exe = app_dir / "ScreenTranslator.exe"
     uninstaller = app_dir / "unins000.exe"
     assert exe.is_file() and uninstaller.is_file() and (app_dir / "Uninstall.exe").is_file()
+    assert (app_dir / "Update.exe").is_file(), "Update helper is missing from installed app"
     assert not (app_dir / "Uninstall.bat").exists()
     assert not default_dir.exists(), "Custom install path was ignored"
     desktop_link = known_folder(0x10) / (shortcut_name + ".lnk")
@@ -185,7 +186,8 @@ def main():
     unrelated_in_app.unlink()
     app_dir.rmdir()
     # A clean reinstall has no legacy source; full removal should remove the now-empty root too.
-    subprocess.run(install_args, check=True, timeout=180)
+    subprocess.run(install_args + ["/UPDATE=1"], check=True, timeout=180)
+    assert not desktop_link.exists(), "Silent update recreated a desktop shortcut the user omitted"
     subprocess.run([str(app_dir / "Uninstall.exe"), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/DATA=all"],
                    cwd=sandbox, check=True, timeout=30)
     deadline = time.monotonic() + 30
@@ -207,6 +209,7 @@ def main():
         "Config, catalogs, dotenv and logs migrate from legacy data without changing originals during setup",
         "App/config/data share the chosen install folder; reinstall retains local config",
         "Old unconditional uninstall log is safe with relocated catalogs",
+        "Update helper installed; silent update does not recreate an omitted desktop shortcut",
         "Uninstall removes app, config/cache/logs, shortcuts and registry entry",
         "Running-app mutex blocks uninstall", "Unrelated sentinel and junction target survive"]}
     (artifacts / "release-install-uninstall.json").write_text(json.dumps(result, indent=2), encoding="utf-8")

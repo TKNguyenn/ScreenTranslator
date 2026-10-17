@@ -11,6 +11,7 @@ venv/
 /config.json
 /providers.json
 /prompts.json
+/[Tt][Rr][Ii][Aa][Ll].json
 /data/
 
 # Generated builds, installers and local build tools

@@ -8,7 +8,13 @@ QLabel[pageSubtitle="true"] { color: #97B1C6; padding-bottom: 9px; }
 QFrame#sidebarFrame { background: rgba(12, 25, 40, 240); border-right: 1px solid rgba(56,189,248,45); }
 QLabel#brandTitle { font-size: 15px; font-weight: 700; color: #F2FBFF; }
 QLabel#brandSubtitle { color: #7DD3FC; font-size: 10px; }
-QLabel#sidebarFooter { color: #7F9CB1; padding: 12px; border: 1px solid #1D3A4C; border-radius: 10px; background: #0C1C2C; }
+QFrame#sidebarFooter { border: 1px solid #1D3A4C; border-radius: 10px; background: #0C1C2C; }
+QLabel#updateStatus { color: #7F9CB1; font-size: 11px; }
+QProgressBar { border: none; border-radius: 2px; background: #162D42; }
+QProgressBar::chunk { background: #10B981; border-radius: 2px; }
+QProgressBar#trialQuota { background: #22252A; border: none; border-radius: 5px; }
+QProgressBar#trialQuota::chunk { background: #EEEEEE; border-radius: 5px; }
+QLabel#trialQuotaStatus { color: #8DA9BD; font-size: 12px; }
 QListWidget { background: #0C1929; border: 1px solid #294559; border-radius: 10px; padding: 5px; outline: none; }
 QListWidget::item { padding: 9px 10px; color: #ADC3D5; border: 1px solid transparent; border-radius: 7px; margin: 2px 0; }
 QListWidget::item:hover { background: #172F43; color: #FFFFFF; }

@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Any, Mapping
 
 from PySide6.QtCore import QEvent, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QPlainTextEdit,
+    QProgressBar,
     QMessageBox,
     QPushButton,
     QScrollArea,
@@ -33,9 +34,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QInputDialog,
+    QKeySequenceEdit,
 )
 
-from app.config import AppConfig, ProviderProfile, QuickUxSection, parse_quick_ux_section, provider_profile_to_dict, provider_profile_from_dict
+from app.config import (AppConfig, HotkeySection, ProviderProfile, QuickUxSection,
+                        parse_hotkey_section, parse_quick_ux_section,
+                        provider_profile_to_dict, provider_profile_from_dict)
 from app.prompts import (
     CONTEXT_LABELS,
     PERFORMANCE_LABELS,
@@ -49,6 +53,8 @@ from app.version import APP_VERSION
 from app.ui.theme import asset_icon, dark_titlebar
 from app.ui.aurora import AuroraHero, OceanBackdrop
 from app.providers.google_translate_addon import GOOGLE_PROVIDER_PRESETS
+from app.trial import TRIAL_TYPE, TRIAL_BASE_URL, TRIAL_MODELS, trial_profile_values, trial_model_label
+from app.services.trial_usage import TrialUsageStore
 
 
 _STREAM_OPTIONS = (
@@ -81,6 +87,8 @@ class MainWindow(QMainWindow):
     export_providers_requested = Signal(str)
     region_translate_requested = Signal()
     quick_ux_settings_requested = Signal(object)
+    hotkeys_settings_requested = Signal(object)
+    check_updates_requested = Signal()
 
     def __init__(self, app: QApplication, config: AppConfig) -> None:
         super().__init__()
@@ -143,19 +151,40 @@ class MainWindow(QMainWindow):
         self._nav.addItem("Dịch vùng màn hình")
         self._nav.addItem("Quick UX")
         self._nav.addItem("Dịch PDF (sắp có)")
+        self._nav.addItem("Cài đặt")
         for index, icon in enumerate(("tab_overview.svg", "tab_provider.svg", "tab_prompt.svg",
-                                      "tab_region_capture.svg", "tab_quick_ux.svg", "tab_pdf.svg")):
+                                      "tab_region_capture.svg", "tab_quick_ux.svg", "tab_pdf.svg",
+                                      "tab_settings.svg")):
             self._nav.item(index).setIcon(asset_icon("icons/" + icon))
         self._nav.setCurrentRow(0)
         side.addWidget(self._nav, 1)
-        footer = QLabel(f"AURORA BENTO · v{APP_VERSION}\nThu nhỏ để chạy trong System Tray")
+        footer = QFrame()
         footer.setObjectName("sidebarFooter")
-        footer.setWordWrap(True)
+        footer_layout = QVBoxLayout(footer)
+        footer_layout.setContentsMargins(10, 10, 10, 10)
+        footer_layout.setSpacing(8)
+        self._check_updates_button = QPushButton("Check for updates")
+        self._check_updates_button.setObjectName("checkUpdatesButton")
+        self._check_updates_button.setCursor(Qt.PointingHandCursor)
+        self._check_updates_button.clicked.connect(self.check_updates_requested.emit)
+        self._update_status = QLabel(f"Đang dùng v{APP_VERSION}")
+        self._update_status.setObjectName("updateStatus")
+        self._update_status.setWordWrap(True)
+        self._update_status.setTextFormat(Qt.PlainText)
+        self._update_progress = QProgressBar()
+        self._update_progress.setRange(0, 100)
+        self._update_progress.setTextVisible(False)
+        self._update_progress.setFixedHeight(4)
+        self._update_progress.hide()
+        footer_layout.addWidget(self._check_updates_button)
+        footer_layout.addWidget(self._update_status)
+        footer_layout.addWidget(self._update_progress)
         side.addWidget(footer)
 
         self._pages = QStackedWidget()
         for builder in (self._build_overview_page, self._build_provider_page, self._build_prompt_page,
-                        self._build_screen_translate_page, self._build_quick_ux_page, self._build_pdf_page):
+                        self._build_screen_translate_page, self._build_quick_ux_page, self._build_pdf_page,
+                        self._build_settings_page):
             page = builder()
             scroll = QScrollArea()
             scroll.setWidgetResizable(True)
@@ -167,6 +196,15 @@ class MainWindow(QMainWindow):
 
         outer.addWidget(sidebar)
         outer.addWidget(self._pages, 1)
+
+    def set_update_state(self, status: str, button: str = "Check for updates", *,
+                         busy: bool = False, progress: int | None = None) -> None:
+        self._check_updates_button.setText(button)
+        self._check_updates_button.setEnabled(not busy)
+        self._update_status.setText(status)
+        self._update_progress.setVisible(progress is not None)
+        if progress is not None:
+            self._update_progress.setValue(progress)
 
     def _page_container(self, title: str, subtitle: str) -> tuple[QWidget, QVBoxLayout]:
         page = QWidget()
@@ -285,6 +323,9 @@ class MainWindow(QMainWindow):
         export_btn.clicked.connect(self._choose_export_provider_catalog)
         catalog_buttons.addWidget(import_btn)
         catalog_buttons.addWidget(export_btn)
+        trial_btn = QPushButton("+ Trial")
+        trial_btn.clicked.connect(self._add_trial_provider)
+        catalog_buttons.addWidget(trial_btn)
         for caption, name in (("+ Google Free", "Google Translate Free"),
                               ("+ Google Cloud", "Google Cloud Translate")):
             button = QPushButton(caption)
@@ -326,6 +367,8 @@ class MainWindow(QMainWindow):
 
         connection = QGroupBox("Kết nối API")
         connection_form = QFormLayout(connection)
+        self._connection_group = connection
+        self._connection_form = connection_form
         self._profile_name_label = QLabel("-")
         self._type_combo = QComboBox()
         self._type_combo.addItems(["openai_compatible", "google_translate_web", "google_cloud_translate", "mock"])
@@ -334,6 +377,7 @@ class MainWindow(QMainWindow):
         self._api_key_edit = QLineEdit()
         self._api_key_edit.setEchoMode(QLineEdit.Password)
         api_key_box = QWidget()
+        self._api_key_box = api_key_box
         api_key_layout = QHBoxLayout(api_key_box)
         api_key_layout.setContentsMargins(0, 0, 0, 0)
         api_key_layout.addWidget(self._api_key_edit, 1)
@@ -378,7 +422,8 @@ class MainWindow(QMainWindow):
         self._models_group = models_group
         models_layout = QVBoxLayout(models_group)
         active_row = QHBoxLayout()
-        active_row.addWidget(QLabel("Model đang dùng:"))
+        self._active_model_label = QLabel("Model đang dùng:")
+        active_row.addWidget(self._active_model_label)
         self._active_model_combo = QComboBox()
         active_row.addWidget(self._active_model_combo, 1)
         models_layout.addLayout(active_row)
@@ -407,6 +452,35 @@ class MainWindow(QMainWindow):
         stream_form.addRow("Quality:", self._stream_quality)
         editor_layout.addWidget(stream_group)
 
+        self._trial_group = QWidget()
+        trial_layout = QVBoxLayout(self._trial_group)
+        trial_layout.setContentsMargins(0, 0, 0, 0)
+        trial_layout.setSpacing(10)
+        trial_layout.addWidget(QLabel("Hạn mức sử dụng"))
+        self._trial_quota = QProgressBar()
+        self._trial_quota.setObjectName("trialQuota")
+        self._trial_quota.setRange(0, 100)
+        self._trial_quota.setValue(100)
+        self._trial_quota.setTextVisible(False)
+        self._trial_quota.setFixedHeight(10)
+        self._trial_quota.setAccessibleName("Hạn mức sử dụng")
+        self._trial_quota.setAccessibleDescription("Hạn mức ước lượng, không chính xác")
+        trial_layout.addWidget(self._trial_quota)
+        self._trial_quota_status = QLabel("Hạn mức ước lượng, không chính xác. Chi phí thực tế tùy độ dài văn bản.")
+        self._trial_quota_status.setWordWrap(True)
+        self._trial_quota_status.setObjectName("trialQuotaStatus")
+        trial_layout.addWidget(self._trial_quota_status)
+        trial_hint = QLabel("Liên hệ người phát triển để nhận API key Trial riêng.")
+        trial_hint.setWordWrap(True)
+        trial_layout.addWidget(trial_hint)
+        editor_layout.addWidget(self._trial_group)
+        self._api_key_edit.textChanged.connect(self.refresh_trial_quota)
+        self._trial_quota_timer = QTimer(self)
+        self._trial_quota_timer.setInterval(60_000)
+        self._trial_quota_timer.timeout.connect(
+            lambda: self.refresh_trial_quota() if self._trial_group.isVisible() else None)
+        self._trial_quota_timer.start()
+
         test_group = QGroupBox("Kiểm tra provider/model")
         test_layout = QVBoxLayout(test_group)
         test_hint = QLabel(
@@ -414,6 +488,7 @@ class MainWindow(QMainWindow):
             "Request test có thể phát sinh chi phí nhỏ tùy provider."
         )
         test_hint.setWordWrap(True)
+        self._provider_test_hint = test_hint
         self._provider_test_button = QPushButton("Test provider / model hiện tại")
         self._provider_test_button.clicked.connect(self._test_current_provider)
         self._provider_test_status = QLabel("Chưa test")
@@ -683,6 +758,91 @@ class MainWindow(QMainWindow):
         layout.addStretch(1)
         return page
 
+    def _build_settings_page(self) -> QWidget:
+        page, layout = self._page_container(
+            "Cài đặt",
+            "Thay đổi các phím tắt toàn app. Bấm vào từng ô rồi nhấn tổ hợp phím muốn dùng.",
+        )
+        group = QGroupBox("Hotkey")
+        form = QFormLayout(group)
+        form.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        self._hotkey_edits: dict[str, QKeySequenceEdit] = {}
+        for key, label in (
+            ("translate_selection", "Dịch bôi đen"),
+            ("translate_and_replace", "Dịch và thay thế"),
+            ("live_toggle", "Bật/tắt Live Translate"),
+            ("region_translate", "Dịch vùng màn hình"),
+            ("target_vi", "Chuyển sang Tiếng Việt"),
+            ("target_en", "Chuyển sang English"),
+            ("target_zh_hant", "Chuyển sang 繁體中文"),
+        ):
+            edit = QKeySequenceEdit()
+            edit.setMaximumSequenceLength(1)
+            edit.setToolTip("Nhấn một tổ hợp phím, ví dụ Alt+T")
+            self._hotkey_edits[key] = edit
+            form.addRow(label + ":", edit)
+        self._hotkey_delay = QSpinBox()
+        self._hotkey_delay.setRange(0, 1000)
+        self._hotkey_delay.setSingleStep(10)
+        self._hotkey_delay.setSuffix(" ms")
+        form.addRow("Độ trễ nhả phím:", self._hotkey_delay)
+        self._hotkey_suppress = QCheckBox("Chặn tổ hợp hotkey khỏi ứng dụng đang dùng")
+        form.addRow("Hành vi:", self._hotkey_suppress)
+        layout.addWidget(group)
+
+        note = QLabel(
+            "Hotkey được đăng ký toàn hệ thống. Mỗi hotkey phải khác nhau; nếu tổ hợp đã bị ứng dụng "
+            "khác chiếm, app sẽ báo lỗi khi áp dụng."
+        )
+        note.setWordWrap(True)
+        note.setProperty("infoBanner", True)
+        layout.addWidget(note)
+        actions = QHBoxLayout()
+        save = QPushButton("Lưu & áp dụng hotkey")
+        save.setProperty("primaryCta", True)
+        save.clicked.connect(self._save_hotkeys)
+        reset = QPushButton("Khôi phục mặc định")
+        reset.clicked.connect(self._reset_hotkeys)
+        actions.addWidget(save)
+        actions.addWidget(reset)
+        actions.addStretch(1)
+        layout.addLayout(actions)
+        self._hotkey_status = QLabel("")
+        self._hotkey_status.setWordWrap(True)
+        layout.addWidget(self._hotkey_status)
+        layout.addStretch(1)
+        return page
+
+    @staticmethod
+    def _key_sequence_text(edit: QKeySequenceEdit) -> str:
+        return edit.keySequence().toString(QKeySequence.PortableText).strip().lower().replace(" ", "")
+
+    def set_hotkey_settings(self, config: HotkeySection) -> None:
+        for key, edit in self._hotkey_edits.items():
+            edit.setKeySequence(QKeySequence(getattr(config, key)))
+        self._hotkey_delay.setValue(config.release_delay_ms)
+        self._hotkey_suppress.setChecked(config.suppress_hotkeys)
+        self._hotkey_status.setText("Hotkey hiện tại đã được nạp từ config.json.")
+
+    def _hotkey_form_values(self) -> dict[str, Any]:
+        values = {key: self._key_sequence_text(edit) for key, edit in self._hotkey_edits.items()}
+        values["release_delay_ms"] = self._hotkey_delay.value()
+        values["suppress_hotkeys"] = self._hotkey_suppress.isChecked()
+        return values
+
+    def _save_hotkeys(self) -> None:
+        try:
+            parsed = parse_hotkey_section(self._hotkey_form_values())
+        except ValueError as exc:
+            QMessageBox.warning(self, "Hotkey", str(exc))
+            return
+        self.hotkeys_settings_requested.emit(parsed.as_json())
+
+    def _reset_hotkeys(self) -> None:
+        config = HotkeySection()
+        self.set_hotkey_settings(config)
+        self.hotkeys_settings_requested.emit(config.as_json())
+
     def show_quick_ux_settings(self) -> None:
         self.show_from_tray()
         self._nav.setCurrentRow(4)
@@ -768,6 +928,7 @@ class MainWindow(QMainWindow):
             self._load_selected_prompt()
         self._refresh_region_config_summary()
         self.set_quick_ux_settings(config.quick_ux)
+        self.set_hotkey_settings(config.hotkeys)
 
     def update_runtime_state(
         self,
@@ -864,9 +1025,10 @@ class MainWindow(QMainWindow):
             self._models_list.clear()
             self._models_list.addItems(models)
             self._active_model_combo.clear()
-            self._active_model_combo.addItems(models)
+            for model in models:
+                self._active_model_combo.addItem(trial_model_label(model) if data.get("type") == TRIAL_TYPE else model, model)
             active_model = str(data.get("model", ""))
-            idx = self._active_model_combo.findText(active_model)
+            idx = self._active_model_combo.findData(active_model)
             if idx >= 0:
                 self._active_model_combo.setCurrentIndex(idx)
 
@@ -898,7 +1060,7 @@ class MainWindow(QMainWindow):
 
         models = [self._models_list.item(i).text().strip() for i in range(self._models_list.count())]
         models = list(dict.fromkeys(item for item in models if item))
-        active_model = self._active_model_combo.currentText().strip()
+        active_model = str(self._active_model_combo.currentData() or self._active_model_combo.currentText()).strip()
         if active_model and active_model not in models:
             models.append(active_model)
         data["models"] = models
@@ -914,7 +1076,17 @@ class MainWindow(QMainWindow):
             if isinstance(value, bool):
                 override[mode] = value
         data["streaming_override"] = override
+        if provider_type == TRIAL_TYPE:
+            data = provider_profile_to_dict(provider_profile_from_dict(data))
         self._working_profiles[name] = data
+
+    def _add_trial_provider(self) -> None:
+        self._commit_current_form()
+        if "Trial" not in self._working_profiles:
+            self._working_profiles["Trial"] = provider_profile_to_dict(
+                provider_profile_from_dict(trial_profile_values({})))
+        self._rebuild_provider_list(select="Trial")
+        self._rebuild_active_profile_combo()
 
     def _add_google_provider(self, name: str) -> None:
         self._commit_current_form()
@@ -927,6 +1099,13 @@ class MainWindow(QMainWindow):
     def _on_provider_type_changed(self, kind: str) -> None:
         if self._loading_form:
             return
+        if kind == TRIAL_TYPE:
+            self._base_url_edit.setText(TRIAL_BASE_URL)
+            self._models_list.clear()
+            self._models_list.addItems(TRIAL_MODELS)
+            self._active_model_combo.clear()
+            for model in TRIAL_MODELS:
+                self._active_model_combo.addItem(trial_model_label(model), model)
         if kind in {"google_translate_web", "google_cloud_translate"}:
             name = "Google Translate Free" if kind == "google_translate_web" else "Google Cloud Translate"
             preset = GOOGLE_PROVIDER_PRESETS[name]
@@ -1226,6 +1405,7 @@ class MainWindow(QMainWindow):
 
     def _set_provider_form_enabled(self) -> None:
         kind = self._type_combo.currentText()
+        trial = kind == TRIAL_TYPE
         enabled = kind != "mock"
         google = kind in {"google_translate_web", "google_cloud_translate"}
         for widget in (
@@ -1241,7 +1421,7 @@ class MainWindow(QMainWindow):
             widget.setEnabled(enabled)
         self._endpoint_combo.setEnabled(enabled and not google)
         self._allow_no_key.setEnabled(enabled and not google)
-        self._base_url_edit.setReadOnly(google)
+        self._base_url_edit.setReadOnly(google or trial)
         for widget in (self._api_key_edit, self._api_key_env_edit, self._show_key):
             widget.setEnabled(enabled and kind != "google_translate_web")
         for widget in (self._active_model_combo, self._models_list, *self._model_buttons,
@@ -1250,12 +1430,36 @@ class MainWindow(QMainWindow):
         self._google_provider_note.setVisible(google)
         self._models_group.setVisible(not google)
         self._stream_group.setVisible(not google)
+        self._trial_group.setVisible(trial)
+        self._connection_group.setTitle("ScreenTranslator AI Trial" if trial else "Kết nối API")
+        for widget in (self._profile_name_label, self._type_combo, self._base_url_edit,
+                       self._api_key_env_edit, self._allow_no_key,
+                       self._timeout_spin, self._connect_timeout_spin, self._verify_ssl):
+            self._connection_form.setRowVisible(widget, not trial)
+        self._models_group.setTitle("Chọn model dịch" if trial else "Models")
+        self._active_model_label.setVisible(not trial)
+        self._models_list.setVisible(not trial)
+        for button in self._model_buttons:
+            button.setVisible(not trial)
+        self._provider_test_hint.setText(
+            "Kiểm tra kết nối bằng key và model đang chọn. Lần kiểm tra có thể sử dụng ngân sách Trial."
+            if trial else "Gửi một request rất ngắn để kiểm tra Base URL, API key, endpoint và model hiện đang chọn. "
+            "Request test có thể phát sinh chi phí nhỏ tùy provider.")
+        self._provider_test_button.setText("Kiểm tra key / model" if trial else "Test provider / model hiện tại")
+        if trial:
+            self.refresh_trial_quota()
         if google:
             service = ("Free: endpoint không chính thức, không cần key; có thể bị giới hạn hoặc ngừng hoạt động. "
                        "Văn bản được gửi đến Google trong URL GET." if kind == "google_translate_web" else
                        "Cloud Basic v2: cần API key, bật Cloud Translation API và billing; có thể phát sinh chi phí.")
             self._google_provider_note.setText(service + " Không dùng prompt, style, tốc độ AI, endpoint OpenAI hay streaming. "
                                                "Không tự chuyển Free sang Cloud khi lỗi.")
+
+    def refresh_trial_quota(self) -> None:
+        if self._type_combo.currentText() != TRIAL_TYPE:
+            return
+        usage = TrialUsageStore(self._config.data_dir / "trial_usage.json")
+        self._trial_quota.setValue(usage.remaining(self._api_key_edit.text()))
 
     def _refresh_region_config_summary(self) -> None:
         if not hasattr(self, "_region_hotkey_label"):

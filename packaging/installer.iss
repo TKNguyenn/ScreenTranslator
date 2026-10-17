@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.4.1.8"
+  #define AppVersion "0.4.1.9"
 #endif
 #ifndef InstallId
   #define InstallId "AIScreenTranslator-96F65CB7-531C-4202-B340-B90251E5B2AC"
@@ -50,6 +50,7 @@ VersionInfoVersion={#AppVersion}
 [Files]
 Source: "..\dist\ScreenTranslator\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#LauncherPath}"; DestDir: "{app}"; DestName: "Uninstall.exe"; Flags: ignoreversion
+Source: "..\build\Update.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\docs\Windows_Release.md"; DestDir: "{app}"; DestName: "README.txt"; Flags: ignoreversion
 ; Copy old settings only on migration; never replace existing local files or delete originals during setup.
 Source: "{#LegacyDataDir}\config.json"; DestDir: "{app}"; Flags: external onlyifdoesntexist skipifsourcedoesntexist; Check: MigrateLegacyData
@@ -119,7 +120,7 @@ begin
   DesktopShortcutCheck.SetBounds(WizardForm.RunList.Left, WizardForm.RunList.Top,
     WizardForm.RunList.Width, ScaleY(24));
   DesktopShortcutCheck.Caption := 'Create a desktop shortcut';
-  DesktopShortcutCheck.Checked := True;
+  DesktopShortcutCheck.Checked := ExpandConstant('{param:UPDATE|0}') <> '1';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

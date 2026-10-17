@@ -45,6 +45,45 @@ class HotkeySection:
     release_delay_ms: int = 60
     suppress_hotkeys: bool = True
 
+    def as_json(self) -> dict[str, Any]:
+        return {
+            "translate_selection": self.translate_selection,
+            "translate_and_replace": self.translate_and_replace,
+            "live_toggle": self.live_toggle,
+            "region_translate": self.region_translate,
+            "target_vi": self.target_vi,
+            "target_en": self.target_en,
+            "target_zh_hant": self.target_zh_hant,
+            "release_delay_ms": self.release_delay_ms,
+            "suppress_hotkeys": self.suppress_hotkeys,
+        }
+
+
+def parse_hotkey_section(raw: Any) -> HotkeySection:
+    """Validate hotkeys before they are written or registered globally."""
+    if not isinstance(raw, dict):
+        raise ValueError("hotkeys must be an object")
+    defaults = HotkeySection()
+    names = (
+        "translate_selection", "translate_and_replace", "live_toggle",
+        "region_translate", "target_vi", "target_en", "target_zh_hant",
+    )
+    values: dict[str, str] = {}
+    for name in names:
+        value = str(raw.get(name, getattr(defaults, name))).strip().lower().replace(" ", "")
+        if not value:
+            raise ValueError(f"hotkeys.{name} cannot be empty")
+        values[name] = value
+    if len(set(values.values())) != len(values):
+        raise ValueError("Mỗi hotkey phải khác nhau để tránh đăng ký nhầm hành động.")
+    delay = raw.get("release_delay_ms", defaults.release_delay_ms)
+    if isinstance(delay, bool) or not isinstance(delay, int) or not 0 <= delay <= 1000:
+        raise ValueError("hotkeys.release_delay_ms must be an integer from 0 to 1000")
+    suppress = raw.get("suppress_hotkeys", defaults.suppress_hotkeys)
+    if not isinstance(suppress, bool):
+        raise ValueError("hotkeys.suppress_hotkeys must be true/false")
+    return HotkeySection(**values, release_delay_ms=delay, suppress_hotkeys=suppress)
+
 
 @dataclass(frozen=True)
 class ClipboardSection:
@@ -259,7 +298,7 @@ class AppConfig:
 
         return cls(
             app=_build_section(AppSection, raw.get("app", {})),
-            hotkeys=_build_section(HotkeySection, raw.get("hotkeys", {})),
+            hotkeys=parse_hotkey_section(raw.get("hotkeys", {})),
             clipboard=_build_section(ClipboardSection, raw.get("clipboard", {})),
             translation=_build_translation_section(raw.get("translation", {})),
             providers=_build_provider_section(raw.get("providers", {}), config_path=path),
@@ -326,6 +365,9 @@ def resolve_prompt_catalog_path(
 
 def provider_profile_from_dict(values: dict[str, Any]) -> ProviderProfile:
     """Parse one fully-resolved runtime profile."""
+    from app.trial import is_trial_profile, trial_profile_values
+    if is_trial_profile(values):
+        values = trial_profile_values(values)
     allowed = ProviderProfile.__dataclass_fields__.keys()
     filtered = {key: value for key, value in values.items() if key in allowed}
     from app.providers.google_translate_addon import infer_google_provider_type
@@ -391,6 +433,10 @@ def provider_profile_to_dict(profile: ProviderProfile) -> dict[str, Any]:
 
 def portable_provider_entry(profile: ProviderProfile | dict[str, Any]) -> dict[str, Any]:
     """Return the exact portable schema: base_url, api_key, models."""
+    from app.trial import is_trial_profile
+    values = asdict(profile) if isinstance(profile, ProviderProfile) else profile
+    if is_trial_profile(values):
+        profile = provider_profile_from_dict(values)
     if isinstance(profile, ProviderProfile):
         base_url = profile.base_url
         api_key = profile.api_key
@@ -505,6 +551,8 @@ def _read_provider_catalog(path: Path) -> dict[str, dict[str, Any]]:
     for name, entry in raw.items():
         if not isinstance(entry, dict):
             continue
+        if str(name).casefold() == "trial":
+            entry = dict(entry, type="ai_trial")
         result[str(name)] = portable_provider_entry(entry)
     return result
 

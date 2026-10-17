@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 
 from app.config import (
     AppConfig,
+    parse_hotkey_section,
     ProviderSection,
     QuickUxSection,
     parse_quick_ux_section,
@@ -50,6 +51,8 @@ from app.services.foreground_tracker import ForegroundWindowTracker
 from app.services.hotkeys import HotkeyService
 from app.services.runtime_settings import RuntimeSettingsStore
 from app.services.window_service import WindowService
+from app.services.updates import UpdateManager, Release, installed_app_root, launch_installer, version_tuple
+from app.version import APP_VERSION
 from app.quickux.selection import MouseSelectionCandidate, QuickSelectionProbe, QuickSelectionCheck, SelectionSnapshot
 from app.quickux.mouse_monitor import MouseSelectionMonitor
 from app.quickux.selection_worker import QuickSelectionWorker
@@ -264,8 +267,16 @@ class AppController(QObject):
         self._region_selector.failed.connect(self._on_region_failed)
 
         self._main_window = MainWindow(app=app, config=config)
+        self._available_update: Release | None = None
+        self._updates = UpdateManager(self)
+        self._updates.checked.connect(self._on_update_checked)
+        self._updates.failed.connect(self._on_update_failed)
+        self._updates.progress.connect(self._on_update_progress)
+        self._updates.downloaded.connect(self._on_update_downloaded)
+        self._main_window.check_updates_requested.connect(self._on_update_clicked)
         self._main_window.exit_requested.connect(app.quit)
         self._main_window.quick_ux_settings_requested.connect(self._save_quick_ux_settings)
+        self._main_window.hotkeys_settings_requested.connect(self._save_hotkey_settings)
         self._quick_toolbar.settings_requested.connect(self._main_window.show_quick_ux_settings)
         self._main_window.reload_requested.connect(self._reload_config)
         self._main_window.save_providers_requested.connect(self._save_provider_configuration)
@@ -358,6 +369,7 @@ class AppController(QObject):
     @Slot()
     def shutdown(self) -> None:
         logger.info("Application shutting down")
+        self._updates.close()
         self._main_window.allow_close()
         self._tray.hide()
         self._hotkeys.stop()
@@ -371,6 +383,54 @@ class AppController(QObject):
         self._input_worker.stop()
         self._ocr_worker.stop()
         self._translation_worker.stop()
+
+    @Slot()
+    def _on_update_clicked(self) -> None:
+        if self._available_update is None:
+            self._main_window.set_update_state("Đang kiểm tra GitHub…", "Checking…", busy=True)
+            self._updates.check()
+            return
+        try:
+            installed_app_root()
+        except RuntimeError as exc:
+            self._on_update_failed(str(exc))
+            QMessageBox.information(self._main_window, "Cập nhật ứng dụng", str(exc))
+            return
+        self._main_window.set_update_state("Đang tải bộ cài…", "Downloading…", busy=True, progress=0)
+        self._updates.download(self._available_update)
+
+    @Slot(object)
+    def _on_update_checked(self, release: Release) -> None:
+        self._available_update = release if version_tuple(release.version) > version_tuple(APP_VERSION) else None
+        if self._available_update:
+            self._main_window.set_update_state(f"Có phiên bản mới: v{release.version}", f"Update to v{release.version}")
+        else:
+            status = f"Latest version: v{release.version}"
+            if version_tuple(APP_VERSION) > version_tuple(release.version):
+                status += f"\nĐang dùng bản mới hơn: v{APP_VERSION}"
+            self._main_window.set_update_state(status)
+
+    @Slot(int)
+    def _on_update_progress(self, percent: int) -> None:
+        self._main_window.set_update_state(f"Đang tải bản cập nhật: {percent}%", "Downloading…",
+                                           busy=True, progress=percent)
+
+    @Slot(str)
+    def _on_update_failed(self, message: str) -> None:
+        logger.warning("Update failed: %s", message)
+        button = f"Update to v{self._available_update.version}" if self._available_update else "Check for updates"
+        self._main_window.set_update_state(message, button)
+
+    @Slot(str)
+    def _on_update_downloaded(self, path: str) -> None:
+        try:
+            launch_installer(Path(path), self._available_update.sha256)
+        except (OSError, RuntimeError) as exc:
+            self._updates.close()
+            self._on_update_failed(str(exc))
+            return
+        self._updates.keep_download_for_installer()
+        self._app.quit()
 
     @Slot()
     def _on_hotkey_ready(self) -> None:
@@ -611,6 +671,7 @@ class AppController(QObject):
 
     @Slot(object)
     def _on_translation(self, result: TranslationResult) -> None:
+        self._main_window.refresh_trial_quota()
         job_id = result.request.job_id
         # Closed/canceled Quick UX jobs must NEVER be rerouted to legacy Replace.
         if job_id in self._quick_translation_ids:
@@ -901,6 +962,21 @@ class AppController(QObject):
             return
         self._apply_quick_ux(new_section)
         self._tray.notify("Quick UX", "Đã lưu và áp dụng Quick Toolbar.", 1800)
+
+    @Slot(object)
+    def _save_hotkey_settings(self, raw: object) -> None:
+        try:
+            new_section = parse_hotkey_section(raw)
+            self._config_store.replace_section("hotkeys", new_section.as_json())
+        except Exception as exc:
+            logger.exception("Saving hotkey settings failed")
+            self._show_error_dialog("Hotkey", str(exc))
+            self._main_window.set_hotkey_settings(self._config.hotkeys)
+            return
+        if not self._reload_config_internal():
+            self._main_window.set_hotkey_settings(self._config.hotkeys)
+            return
+        self._tray.notify("Hotkey", "Đã lưu và đăng ký lại hotkey.", 1800)
 
     def _apply_quick_ux(self, section: QuickUxSection) -> None:
         self._config = replace(self._config, quick_ux=section)
@@ -1212,6 +1288,7 @@ class AppController(QObject):
 
     @Slot(object)
     def _on_provider_test_result(self, result: object) -> None:
+        self._main_window.refresh_trial_quota()
         if not isinstance(result, dict):
             self._main_window.show_provider_test_result(False, "Kết quả test không hợp lệ.")
             return

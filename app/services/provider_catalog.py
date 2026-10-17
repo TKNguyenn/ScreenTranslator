@@ -44,6 +44,8 @@ class ProviderCatalogStore:
                 raise ValueError("Provider name cannot be empty.")
             if not isinstance(raw_profile, dict):
                 raise ValueError(f"Provider '{name}' must be an object.")
+            if name.casefold() == "trial":
+                raw_profile = dict(raw_profile, type="ai_trial")
             entry = portable_provider_entry(raw_profile)
             if not entry["models"]:
                 raise ValueError(f"Provider '{name}' must have at least one model.")
@@ -65,6 +67,8 @@ class ProviderCatalogStore:
         for raw_name, raw_profile in loaded.items():
             if not isinstance(raw_profile, dict):
                 continue
+            if str(raw_name).casefold() == "trial":
+                raw_profile = dict(raw_profile, type="ai_trial")
             result[str(raw_name)] = portable_provider_entry(raw_profile)
         return result
 

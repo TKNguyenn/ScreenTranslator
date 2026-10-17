@@ -6,6 +6,8 @@ try {
     New-Item -ItemType Directory -Path build -Force | Out-Null
     & "$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe" /nologo /target:winexe /platform:anycpu /reference:System.Windows.Forms.dll /win32icon:app\assets\app_icon.ico /out:build\Uninstall.exe packaging\Uninstall.cs
     if ($LASTEXITCODE -ne 0) { throw 'Uninstall launcher compilation failed' }
+    & "$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe" /nologo /target:winexe /platform:anycpu /reference:System.Windows.Forms.dll /win32icon:app\assets\app_icon.ico /out:build\Update.exe packaging\Update.cs
+    if ($LASTEXITCODE -ne 0) { throw 'Update helper compilation failed' }
     & $Python -m PyInstaller --noconfirm packaging/ScreenTranslator.spec
     if ($LASTEXITCODE -ne 0) { throw 'PyInstaller build failed' }
     if (-not $Iscc) {
