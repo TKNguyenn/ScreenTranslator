@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen, QTextCursor
 from PySide6.QtWidgets import (
-    QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QSizeGrip, QSplitter,
+    QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QSizeGrip, QSplitter,
     QVBoxLayout, QWidget,
 )
 
@@ -73,11 +73,16 @@ class QuickTranslationPopup(FloatingSurface):
         self.make_drag_handle(self._header)
         self.make_drag_handle(self._headline)
         self.make_drag_handle(self._drag_hint)
-        self._pin = QPushButton("Ghim")
+        self._pin = QPushButton("📌")
         self._pin.setObjectName("popupPin")
+        self._pin.setFixedSize(34, 34)
         self._pin.setToolTip("Ghim popup")
+        self._pin.setAccessibleName("Ghim popup")
+        self._pin_opacity = QGraphicsOpacityEffect(self._pin)
+        self._pin_opacity.setOpacity(0.5)
+        self._pin.setGraphicsEffect(self._pin_opacity)
         self._pin.setCheckable(True)
-        self._pin.clicked.connect(self._toggle_pin)
+        self._pin.toggled.connect(self._toggle_pin)
         head.addWidget(self._pin)
         self._close = QPushButton("×")
         self._close.setObjectName("popupClose")
@@ -154,6 +159,9 @@ class QuickTranslationPopup(FloatingSurface):
           QWidget#quickTranslationPopup QPushButton:pressed { background: #426186; }
           QWidget#quickTranslationPopup QPushButton:checked { background: #214d55; border-color: #72dcd0; }
           QWidget#quickTranslationPopup QPushButton:disabled { color: #8b9db9; background: #1d2b40; border-color: #30425c; }
+          QWidget#quickTranslationPopup QPushButton#popupPin { padding: 0;
+            font-family: "Segoe UI Emoji"; font-size: 20px; font-weight: 400;
+            background: transparent; border: none; }
           QWidget#quickTranslationPopup QPushButton#popupCopy { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #38BDF8,stop:1 #10B981); color: #032535; border-color: #67E8CF; }
           QWidget#quickTranslationPopup QPushButton#popupCopy:hover { background: #67E8CF; }
           QWidget#quickTranslationPopup QPushButton#popupCopy:disabled { background: #1d2b40; color: #8b9db9; border-color: #30425c; }
@@ -185,8 +193,9 @@ class QuickTranslationPopup(FloatingSurface):
 
     def _toggle_pin(self, enabled: bool) -> None:
         self._pinned = enabled
-        self._pin.setText("Đã ghim" if enabled else "Ghim")
+        self._pin_opacity.setOpacity(1.0 if enabled else 0.5)
         self._pin.setToolTip("Bỏ ghim" if enabled else "Ghim popup")
+        self._pin.setAccessibleName(self._pin.toolTip())
 
     def _toggle_original(self, enabled: bool) -> None:
         self._original_view.setVisible(enabled)

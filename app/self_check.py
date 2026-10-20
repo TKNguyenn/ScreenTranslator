@@ -7,7 +7,6 @@ from pathlib import Path
 from app.config import AppConfig
 from app.version import APP_VERSION
 
-
 def run_self_check(report_path: Path) -> int:
     report = {"version": APP_VERSION, "ok": False, "checks": []}
     try:
@@ -36,6 +35,14 @@ def run_self_check(report_path: Path) -> int:
         window._add_google_provider("Google Cloud Translate")
         assert window._api_key_edit.isEnabled()
         report["checks"].append("Qt theme, icons, manager and Google forms")
+        window._add_microsoft_provider()
+        assert window._models_group.isHidden() and window._stream_group.isHidden()
+        assert not window._region_edit.isHidden() and window._api_key_edit.isEnabled()
+        assert not window._microsoft_usage_group.isHidden()
+        from app.config import provider_profile_from_dict, portable_provider_entry
+        microsoft = provider_profile_from_dict(window._working_profiles["Microsoft Translator"])
+        assert provider_profile_from_dict(portable_provider_entry(microsoft)).type == "microsoft_translator"
+        report["checks"].append("Microsoft editor, region/catalog roundtrip and local monthly usage (no network)")
         window._add_trial_provider()
         assert window._base_url_edit.isHidden() and window._models_list.isHidden()
         assert not window._endpoint_combo.isHidden() and window._endpoint_combo.isEnabled()

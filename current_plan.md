@@ -1,7 +1,7 @@
 # CURRENT PLAN - AI SCREEN TRANSLATOR
 
 **Project:** AI Screen Translator for Windows  
-**Source status:** V0.4.1.10 provider-save hotfix + daily startup update checks; V0.4.1.9 was published on 2026-10-17.
+**Source status:** V0.4.1.11: Microsoft Translator with local usage accounting, simplified language toolbar and borderless pin icon. Built and verified on 2026-10-20; 215 tests and 9 packaged checks pass. Earlier planning sections below are historical.
 **Primary platform:** Windows 10/11 x64  
 **Recommended Python for source builds:** 3.11 / 3.12  
 **Planning rule:** ưu tiên khả năng dịch nhanh từ bôi đen (Quick UX) trước Live Screen, nhưng giữ kiến trúc tái sử dụng cho Region -> Live Screen -> PDF. Không viết feature one-off.

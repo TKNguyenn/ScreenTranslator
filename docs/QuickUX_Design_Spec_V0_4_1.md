@@ -4,6 +4,8 @@
 
 > **V0.4.1.4 identity update (2026-10-14):** approved logo 1 Glyph Slash and UI 1 Aurora Bento are now used across the app. Floating surfaces retain their opaque directly painted content, with Dark Ocean #080E1A and a Cyan #38BDF8 → Emerald #10B981 rim. Moving/resizing behavior above remains implemented. See `Ocean_UI_Design_V0_4_1_4.md` for the current design.
 
+> **Toolbar simplification (2026-10-20):** the current toolbar keeps the logo, “Dịch” label and configured language buttons (VI / EN / 繁). The overflow button and its menu have been removed; pointer-leave auto-hide remains active. The overflow proposal below is historical.
+
 # QUICK UX — THIẾT KẾ ĐỀ XUẤT
 
 **Dự án:** AI Screen Translator (Windows 10/11)

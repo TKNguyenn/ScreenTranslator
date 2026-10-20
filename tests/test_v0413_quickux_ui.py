@@ -8,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
     from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
     from PySide6.QtGui import QColor, QImage, QMouseEvent
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtWidgets import QApplication, QPushButton
     from app.config import QuickUxSection
     from app.ui.quick_popup import QuickTranslationPopup
     from app.ui.quick_toolbar import QuickToolbar, clamp_floating_position
@@ -151,11 +151,49 @@ class QuickUxWidgetTests(unittest.TestCase):
         self.popup._show_original.click()
         self.assertFalse(self.popup._original_view.isVisible())
 
+    def test_pin_icon_opacity_and_dismissal_follow_checked_state(self):
+        self.start()
+        pin = self.popup._pin
+        self.assertEqual(pin.text(), "📌")
+        self.assertEqual(pin.graphicsEffect().opacity(), 0.5)
+        self.assertEqual(pin.accessibleName(), "Ghim popup")
+        initial_size = pin.size()
+        pin.click()
+        self.assertTrue(self.popup.pinned)
+        self.assertEqual(pin.text(), "📌")
+        self.assertEqual(pin.graphicsEffect().opacity(), 1.0)
+        self.assertEqual(pin.accessibleName(), "Bỏ ghim")
+        self.assertEqual(pin.toolTip(), "Bỏ ghim")
+        self.assertEqual(pin.size(), initial_size)
+        self.popup.dismiss_if_unpinned()
+        self.assertTrue(self.popup.isVisible())
+        pin.click()
+        self.assertFalse(self.popup.pinned)
+        self.assertEqual(pin.graphicsEffect().opacity(), 0.5)
+        self.assertEqual(pin.accessibleName(), "Ghim popup")
+        self.assertEqual(pin.toolTip(), "Ghim popup")
+        self.popup.dismiss_if_unpinned()
+        self.assertFalse(self.popup.isVisible())
+
     def test_language_click_still_emits_one_shot_target(self):
         targets = []
         self.toolbar.language_requested.connect(targets.append)
         self.toolbar._buttons["en"].click()
         self.assertEqual(targets, ["en"])
+
+    def test_toolbar_only_has_language_buttons(self):
+        self.assertEqual(self.toolbar.findChildren(QPushButton),
+                         list(self.toolbar._buttons.values()))
+
+    def test_toolbar_auto_hide_after_pointer_leaves(self):
+        self.toolbar.show_at(QPoint(20, 20))
+        QApplication.sendEvent(self.toolbar, QEvent(QEvent.Enter))
+        self.assertFalse(self.toolbar._dismiss_timer.isActive())
+        QApplication.sendEvent(self.toolbar, QEvent(QEvent.Leave))
+        self.assertTrue(self.toolbar._dismiss_timer.isActive())
+        self.assertEqual(self.toolbar._dismiss_timer.interval(), 1400)
+        self.toolbar._dismiss_timer.timeout.emit()
+        self.assertFalse(self.toolbar.isVisible())
 
     def test_screen_clamp_supports_negative_monitor_coordinates(self):
         from PySide6.QtCore import QRect

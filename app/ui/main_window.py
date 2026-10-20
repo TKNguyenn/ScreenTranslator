@@ -53,6 +53,7 @@ from app.version import APP_VERSION
 from app.ui.theme import asset_icon, dark_titlebar
 from app.ui.aurora import AuroraHero, OceanBackdrop
 from app.providers.google_translate_addon import GOOGLE_PROVIDER_PRESETS
+from app.providers.microsoft_provider import MICROSOFT_PRESET, MICROSOFT_TYPE
 from app.trial import TRIAL_TYPE, TRIAL_BASE_URL, TRIAL_MODELS, trial_profile_values, trial_model_label
 from app.services.trial_usage import TrialUsageStore
 
@@ -331,8 +332,14 @@ class MainWindow(QMainWindow):
             button = QPushButton(caption)
             button.clicked.connect(lambda checked=False, preset=name: self._add_google_provider(preset))
             catalog_buttons.addWidget(button)
+        microsoft_btn = QPushButton("+ Microsoft")
+        microsoft_btn.clicked.connect(self._add_microsoft_provider)
+        microsoft_buttons = QHBoxLayout()
+        microsoft_buttons.addWidget(microsoft_btn)
+        microsoft_buttons.addStretch(1)
         catalog_buttons.addStretch(1)
         layout.addLayout(catalog_buttons)
+        layout.addLayout(microsoft_buttons)
 
         splitter = QSplitter(Qt.Horizontal)
         layout.addWidget(splitter, 1)
@@ -371,7 +378,7 @@ class MainWindow(QMainWindow):
         self._connection_form = connection_form
         self._profile_name_label = QLabel("-")
         self._type_combo = QComboBox()
-        self._type_combo.addItems(["openai_compatible", "google_translate_web", "google_cloud_translate", "mock"])
+        self._type_combo.addItems(["openai_compatible", "google_translate_web", "google_cloud_translate", "microsoft_translator", "mock"])
         self._type_combo.currentTextChanged.connect(self._on_provider_type_changed)
         self._base_url_edit = QLineEdit()
         self._api_key_edit = QLineEdit()
@@ -389,6 +396,8 @@ class MainWindow(QMainWindow):
         )
         api_key_layout.addWidget(self._show_key)
         self._api_key_env_edit = QLineEdit()
+        self._region_edit = QLineEdit()
+        self._region_edit.setPlaceholderText("southeastasia; để trống nếu resource global")
         self._allow_no_key = QCheckBox("Cho phép không có API key (gateway local)")
         self._endpoint_combo = QComboBox()
         self._endpoint_combo.addItems(["auto", "responses", "chat_completions", "completions"])
@@ -406,6 +415,7 @@ class MainWindow(QMainWindow):
         connection_form.addRow("Type:", self._type_combo)
         connection_form.addRow("Base URL:", self._base_url_edit)
         connection_form.addRow("API key:", api_key_box)
+        connection_form.addRow("Region:", self._region_edit)
         connection_form.addRow("API key env (tùy chọn):", self._api_key_env_edit)
         connection_form.addRow("", self._allow_no_key)
         connection_form.addRow("Endpoint:", self._endpoint_combo)
@@ -474,12 +484,23 @@ class MainWindow(QMainWindow):
         trial_hint.setWordWrap(True)
         trial_layout.addWidget(trial_hint)
         editor_layout.addWidget(self._trial_group)
+        self._microsoft_usage_group = QGroupBox("Microsoft — sử dụng trên máy này")
+        usage_layout = QVBoxLayout(self._microsoft_usage_group)
+        self._microsoft_usage_status = QLabel()
+        self._microsoft_usage_status.setWordWrap(True)
+        usage_layout.addWidget(self._microsoft_usage_status)
+        usage_note = QLabel("Mốc tham khảo F0: 2.000.000 ký tự/tháng. Chỉ tính request thành công của app trên máy này; "
+                           "Thống kê cục bộ dùng chung các profile Microsoft trên máy này; tháng theo giờ Việt Nam.")
+        usage_note.setWordWrap(True)
+        usage_layout.addWidget(usage_note)
+        editor_layout.addWidget(self._microsoft_usage_group)
         self._api_key_edit.textChanged.connect(self.refresh_trial_quota)
         self._trial_quota_timer = QTimer(self)
         self._trial_quota_timer.setInterval(60_000)
         self._trial_quota_timer.timeout.connect(
             lambda: self.refresh_trial_quota() if self._trial_group.isVisible() else None)
         self._trial_quota_timer.start()
+        self._trial_quota_timer.timeout.connect(self.refresh_microsoft_usage)
 
         test_group = QGroupBox("Kiểm tra provider/model")
         test_layout = QVBoxLayout(test_group)
@@ -950,7 +971,8 @@ class MainWindow(QMainWindow):
         self._overview_style.setText(CONTEXT_LABELS.get(context_preset, context_preset))
         self._overview_performance.setText(PERFORMANCE_LABELS.get(performance_mode, performance_mode))
         self._overview_cache.setText("Cache đang bật" if cache_enabled else "Cache đang tắt")
-        google = profile is not None and profile.type in {"google_translate_web", "google_cloud_translate"}
+        google = profile is not None and profile.type in {"google_translate_web", "google_cloud_translate", "microsoft_translator"}
+        self._google_prompt_note.setText("Google / Microsoft dịch trực tiếp, không dùng prompt, style hay tốc độ AI.")
         if google:
             self._overview_performance.setText("Dịch trực tiếp")
             self._overview_style.setText("Không dùng style / prompt AI")
@@ -1015,6 +1037,7 @@ class MainWindow(QMainWindow):
             self._base_url_edit.setText(str(data.get("base_url", "")))
             self._api_key_edit.setText(str(data.get("api_key", "")))
             self._api_key_env_edit.setText(str(data.get("api_key_env", "")))
+            self._region_edit.setText(str(data.get("region", "southeastasia")))
             self._allow_no_key.setChecked(bool(data.get("allow_no_api_key", False)))
             self._set_combo_text(self._endpoint_combo, str(data.get("endpoint_mode", "auto")))
             self._timeout_spin.setValue(float(data.get("timeout_s", 45.0)))
@@ -1042,6 +1065,7 @@ class MainWindow(QMainWindow):
         finally:
             self._loading_form = False
 
+
     def _commit_current_form(self) -> None:
         if self._loading_form or not self._current_profile_name:
             return
@@ -1052,6 +1076,7 @@ class MainWindow(QMainWindow):
         data["base_url"] = self._base_url_edit.text().strip()
         data["api_key"] = self._api_key_edit.text().strip()
         data["api_key_env"] = self._api_key_env_edit.text().strip()
+        data["region"] = self._region_edit.text().strip()
         data["allow_no_api_key"] = self._allow_no_key.isChecked()
         data["endpoint_mode"] = self._endpoint_combo.currentText().strip()
         data["timeout_s"] = float(self._timeout_spin.value())
@@ -1076,7 +1101,7 @@ class MainWindow(QMainWindow):
             if isinstance(value, bool):
                 override[mode] = value
         data["streaming_override"] = override
-        if provider_type == TRIAL_TYPE:
+        if provider_type in (TRIAL_TYPE, MICROSOFT_TYPE):
             data = provider_profile_to_dict(provider_profile_from_dict(data))
         self._working_profiles[name] = data
 
@@ -1096,9 +1121,23 @@ class MainWindow(QMainWindow):
         self._rebuild_provider_list(select=name)
         self._rebuild_active_profile_combo()
 
+    def _add_microsoft_provider(self) -> None:
+        self._commit_current_form()
+        name = "Microsoft Translator"
+        if name not in self._working_profiles:
+            self._working_profiles[name] = provider_profile_to_dict(provider_profile_from_dict(MICROSOFT_PRESET))
+        self._rebuild_provider_list(select=name)
+        self._rebuild_active_profile_combo()
+
     def _on_provider_type_changed(self, kind: str) -> None:
         if self._loading_form:
             return
+        if kind == MICROSOFT_TYPE:
+            self._base_url_edit.setText(MICROSOFT_PRESET["base_url"])
+            self._models_list.clear()
+            self._models_list.addItems(MICROSOFT_PRESET["models"])
+            self._active_model_combo.clear()
+            self._active_model_combo.addItems(MICROSOFT_PRESET["models"])
         if kind == TRIAL_TYPE:
             self._base_url_edit.setText(TRIAL_BASE_URL)
             self._models_list.clear()
@@ -1407,7 +1446,8 @@ class MainWindow(QMainWindow):
         kind = self._type_combo.currentText()
         trial = kind == TRIAL_TYPE
         enabled = kind != "mock"
-        google = kind in {"google_translate_web", "google_cloud_translate"}
+        microsoft = kind == MICROSOFT_TYPE
+        google = kind in {"google_translate_web", "google_cloud_translate", MICROSOFT_TYPE}
         for widget in (
             self._base_url_edit,
             self._api_key_edit,
@@ -1428,6 +1468,11 @@ class MainWindow(QMainWindow):
                        self._stream_ultra, self._stream_fast, self._stream_quality):
             widget.setEnabled(not google)
         self._google_provider_note.setVisible(google)
+        self._connection_form.setRowVisible(self._region_edit, microsoft)
+        self._connection_form.setRowVisible(self._endpoint_combo, not microsoft)
+        self._microsoft_usage_group.setVisible(microsoft)
+        if microsoft:
+            self.refresh_microsoft_usage()
         self._models_group.setVisible(not google)
         self._stream_group.setVisible(not google)
         self._trial_group.setVisible(trial)
@@ -1436,6 +1481,10 @@ class MainWindow(QMainWindow):
                        self._api_key_env_edit, self._allow_no_key,
                        self._timeout_spin, self._connect_timeout_spin, self._verify_ssl):
             self._connection_form.setRowVisible(widget, not trial)
+        if microsoft:
+            for widget in (self._allow_no_key, self._connect_timeout_spin, self._verify_ssl,
+                           self._api_key_env_edit, self._timeout_spin):
+                self._connection_form.setRowVisible(widget, False)
         self._models_group.setTitle("Chọn model dịch" if trial else "Models")
         self._active_model_label.setVisible(not trial)
         self._models_list.setVisible(not trial)
@@ -1448,12 +1497,31 @@ class MainWindow(QMainWindow):
         self._provider_test_button.setText("Kiểm tra key / model" if trial else "Test provider / model hiện tại")
         if trial:
             self.refresh_trial_quota()
-        if google:
+        if microsoft:
+            self._google_provider_note.setText("Microsoft Translator Text v3: nhập Key 1 hoặc Key 2 và Region của resource Azure. "
+                                               "F0 có mốc 2 triệu ký tự/tháng; quyền và quota do Azure quản lý. "
+                                               "Không dùng prompt, model AI hay streaming.")
+            self._provider_test_hint.setText("Gửi Hello → Tiếng Việt để kiểm tra key và region; có tính vào usage.")
+            self._provider_test_button.setText("Kiểm tra Microsoft Translator")
+        elif google:
             service = ("Free: endpoint không chính thức, không cần key; có thể bị giới hạn hoặc ngừng hoạt động. "
                        "Văn bản được gửi đến Google trong URL GET." if kind == "google_translate_web" else
                        "Cloud Basic v2: cần API key, bật Cloud Translation API và billing; có thể phát sinh chi phí.")
             self._google_provider_note.setText(service + " Không dùng prompt, style, tốc độ AI, endpoint OpenAI hay streaming. "
                                                "Không tự chuyển Free sang Cloud khi lỗi.")
+
+    def refresh_microsoft_usage(self) -> None:
+        if self._type_combo.currentText() != MICROSOFT_TYPE:
+            return
+        import sqlite3
+        from microsoft_translator_usage import LocalUsageLedger
+        try:
+            usage = LocalUsageLedger(self._config.data_dir / "microsoft_usage.sqlite3").month_usage()
+            self._microsoft_usage_status.setText(
+                f"Tháng {usage.month}: {usage.local_total:,} ký tự / {usage.calls:,} request. "
+                f"Header request: {usage.verified_characters:,}; ước lượng: {usage.estimated_characters:,}.")
+        except (OSError, sqlite3.Error):
+            self._microsoft_usage_status.setText("Không đọc được thống kê cục bộ; vẫn có thể dịch.")
 
     def refresh_trial_quota(self) -> None:
         if self._type_combo.currentText() != TRIAL_TYPE:

@@ -15,7 +15,7 @@ Giao diện Dark Ocean với nền xanh biển sâu, điểm nhấn Cyan–Emera
 | **Dịch vùng màn hình bằng OCR** | Khoanh vùng có chữ trong hình ảnh hoặc nội dung không thể bôi đen; app nhận diện chữ rồi dịch. |
 | **Dịch và thay thế** | Thay văn bản đang chọn trong ô nhập bằng bản dịch, không tự nhấn Enter hay gửi tin nhắn. |
 | **Popup linh hoạt** | Kéo để di chuyển, kéo cạnh hoặc góc để đổi kích thước; ghim cửa sổ, xem văn bản gốc và sao chép kết quả. |
-| **Nhiều dịch vụ dịch** | Dùng Google Translate Free, Google Cloud Translation hoặc API tương thích OpenAI. |
+| **Nhiều dịch vụ dịch** | Dùng Google Translate Free, Microsoft Translator, Google Cloud Translation hoặc API tương thích OpenAI. |
 | **Tùy chỉnh cách dịch với AI** | Chọn model, phong cách Engineer / Chat / Email, chỉnh prompt và bật streaming khi dịch vụ hỗ trợ. |
 | **Quản lý cấu hình** | Thêm, kiểm tra, nhập và xuất danh sách provider/model cùng các prompt riêng. |
 | **Cài đặt hotkey** | Đổi phím tắt dịch bôi đen, thay thế, OCR vùng màn hình, Live Translate và ngôn ngữ đích ngay trong app. |
@@ -45,9 +45,14 @@ Trong **Provider & Model**, bạn có thể chọn dịch vụ phù hợp:
 | **Google Translate Free** | Không cần API key | Muốn dịch nhanh và tiết kiệm chi phí. |
 | **ScreenTranslator AI Trial** | Liên hệ người phát triển để nhận key riêng | Muốn thử AI với danh sách model có sẵn. |
 | **Google Cloud Translation** | API key, bật Cloud Translation API và billing | Muốn dùng dịch vụ Google Cloud chính thức. |
+| **Microsoft Translator** | Azure Translator key và Region của resource | Dùng Text Translation chính thức, gói F0 có mốc miễn phí 2 triệu ký tự/tháng. |
 | **AI / API tương thích OpenAI** | Địa chỉ API, API key và model của nhà cung cấp | Muốn điều chỉnh cách diễn đạt bằng prompt và phong cách dịch. |
 
-Sau khi chỉnh provider/model, bấm **Lưu & áp dụng**. Với Google, app dịch trực tiếp; prompt, phong cách AI và streaming không áp dụng.
+Sau khi chỉnh provider/model, bấm **Lưu & áp dụng**. Với Google và Microsoft, app dịch trực tiếp; prompt, phong cách AI và streaming không áp dụng.
+
+Để dùng **Microsoft Translator**, bấm **+ Microsoft**, nhập **Key 1 hoặc Key 2**, rồi nhập Region đúng với Azure resource (mặc định `southeastasia`). App dùng endpoint **Text Translation** `https://api.cognitive.microsofttranslator.com`, hỗ trợ phát hiện ngôn ngữ và tiếng Trung phồn thể. Bấm **Kiểm tra Microsoft Translator**, chọn Microsoft ở **Provider đang áp dụng**, rồi **Lưu & áp dụng**.
+
+Thống kê Microsoft nằm trong `data/microsoft_usage.sqlite3`, tính request thành công và ký tự theo tháng giờ Việt Nam. App ưu tiên header `X-Metered-Usage`, thiếu header thì ước lượng; cache không tính thêm. Thống kê cộng các profile Microsoft trên máy này, không chứa key hay nội dung dịch, không đồng bộ số dư Azure/thiết bị khác và không chặn dịch khi vượt mốc tham khảo. Quota, chu kỳ và giá thực tế phụ thuộc resource/gói Azure của bạn. Region được giữ khi xuất/nhập providers.json; các provider khác vẫn dùng schema cũ.
 
 Trong **Trial**, nhập key được cấp, chọn **Endpoint** (`auto`, `responses`, `chat_completions` hoặc `completions`), model và chỉnh streaming riêng cho **Ultra Fast / Fast / Quality**. `auto` tự chọn endpoint phù hợp; URL và danh sách model được cấu hình sẵn. Giá cạnh model là ước lượng mỗi lượt: Luna từ 1đ, Flash từ 3đ, Sol từ 4đ; văn bản dài có thể tốn nhiều hơn.
 

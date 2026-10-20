@@ -258,8 +258,6 @@ class AppController(QObject):
         self._quick_toolbar = QuickToolbar(config.quick_ux)
         self._quick_popup = QuickTranslationPopup(config.quick_ux)
         self._quick_toolbar.language_requested.connect(self._translate_quick_selection)
-        self._quick_toolbar.translate_replace_requested.connect(self._translate_quick_and_replace)
-        self._quick_toolbar.close_requested.connect(self._quick_toolbar.hide)
         self._quick_popup.replace_requested.connect(self._on_quick_popup_replace)
         self._quick_popup.closed.connect(self._on_quick_popup_closed)
         self._region_selector = RegionSelectorOverlay(config.ui)
@@ -278,7 +276,6 @@ class AppController(QObject):
         self._main_window.exit_requested.connect(app.quit)
         self._main_window.quick_ux_settings_requested.connect(self._save_quick_ux_settings)
         self._main_window.hotkeys_settings_requested.connect(self._save_hotkey_settings)
-        self._quick_toolbar.settings_requested.connect(self._main_window.show_quick_ux_settings)
         self._main_window.reload_requested.connect(self._reload_config)
         self._main_window.save_providers_requested.connect(self._save_provider_configuration)
         self._main_window.save_prompt_requested.connect(self._save_prompt_override)
@@ -686,6 +683,7 @@ class AppController(QObject):
     @Slot(object)
     def _on_translation(self, result: TranslationResult) -> None:
         self._main_window.refresh_trial_quota()
+        self._main_window.refresh_microsoft_usage()
         job_id = result.request.job_id
         # Closed/canceled Quick UX jobs must NEVER be rerouted to legacy Replace.
         if job_id in self._quick_translation_ids:
@@ -835,10 +833,6 @@ class AppController(QObject):
     def _translate_quick_selection(self, language: str) -> None:
         self._begin_quick_translation(language, mode=RequestMode.POPUP)
 
-    @Slot()
-    def _translate_quick_and_replace(self) -> None:
-        self._begin_quick_translation(self._target_language, mode=RequestMode.REPLACE)
-
     def _begin_quick_translation(self, language: str, *, mode: RequestMode) -> None:
         self._cancel_quick_replacements()
         snapshot = self._quick_snapshot
@@ -860,7 +854,7 @@ class AppController(QObject):
         self._quick_popup_snapshot = snapshot
         anchor = self._quick_anchor
         self._quick_toolbar.hide()
-        google = self._profile is not None and self._profile.type in {"google_translate_web", "google_cloud_translate"}
+        google = self._profile is not None and self._profile.type in {"google_translate_web", "google_cloud_translate", "microsoft_translator"}
         self._quick_popup.start(
             job_id, snapshot.text, language,
             "Dịch trực tiếp" if google else self._context_preset,
@@ -1303,6 +1297,7 @@ class AppController(QObject):
     @Slot(object)
     def _on_provider_test_result(self, result: object) -> None:
         self._main_window.refresh_trial_quota()
+        self._main_window.refresh_microsoft_usage()
         if not isinstance(result, dict):
             self._main_window.show_provider_test_result(False, "Kết quả test không hợp lệ.")
             return
@@ -1348,7 +1343,7 @@ class AppController(QObject):
         global_value = self._config.translation.streaming_enabled_for(self._performance_mode)
         if self._profile is None:
             return global_value, "global"
-        if self._profile.type in {"google_translate_web", "google_cloud_translate"}:
+        if self._profile.type in {"google_translate_web", "google_cloud_translate", "microsoft_translator"}:
             return False, "provider"
         override = self._profile.streaming_override_for(self._performance_mode)
         if override is None:

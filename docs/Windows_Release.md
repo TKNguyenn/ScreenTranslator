@@ -1,6 +1,6 @@
 # AI Screen Translator — Windows release
 
-Run AI-Screen-Translator-0.4.1.9-Setup.exe to install for the current Windows user.
+Run AI-Screen-Translator-0.4.1.11-Setup.exe to install for the current Windows user.
 Python and administrator access are not required. Windows 10/11 x64 only.
 Launch AI Screen Translator from Desktop or Start Menu.
 Setup shows the default destination and lets you choose another folder with Browse.
@@ -23,7 +23,7 @@ exit the app, install silently in the same folder, then restart. Settings/catalo
 Network, missing-asset or integrity errors allow retry without starting an installer.
 Closing the app while downloading cancels and removes the partial download.
 Automatic installation requires the installed Windows version; Python runs update source through Git.
-Version 0.4.1.8 needs this Setup once to acquire the updater. No automatic checks at startup.
+Version 0.4.1.8 needs a newer Setup once to acquire the updater. The app checks once per Vietnam calendar day on startup; downloads/installations require an explicit Update click.
 Downloads/helper logs live in the install folder's data/updates and are removed on uninstall.
 After a successful update the large downloaded installer is deleted; small helper/log files remain.
 
@@ -65,13 +65,14 @@ Windows-managed history/security caches are controlled by Windows.
 TROUBLESHOOTING
 Run ScreenTranslator.exe --self-check to generate self-check.json in the settings folder.
 This checks bundled Qt/assets, Google provider setup, Windows UI Automation and real local OCR.
+It also checks Microsoft Translator setup and local usage display without network requests.
 It does not send text to an API, read the clipboard or install input hooks.
 
 BUILD FROM SOURCE
 Install requirements.txt and PyInstaller 6.22.3; install Inno Setup 7 (or >= 6.6).
 Run powershell -ExecutionPolicy Bypass -File packaging/build.ps1
 Optionally pass -Iscc with the full path to ISCC.exe.
-Output: release/AI-Screen-Translator-0.4.1.9-Setup.exe, release/Uninstall.exe and release/SHA256.txt.
+Output: release/AI-Screen-Translator-0.4.1.11-Setup.exe, release/Uninstall.exe and release/SHA256.txt.
 The small uninstall/update helpers use the Windows .NET Framework C# compiler; no additional Python bundle is needed.
 For unattended uninstall, the native uninstaller accepts /DATA=keep (default) or /DATA=all.
 PyInstaller stages the app in dist/ScreenTranslator; keep its _internal folder with the exe.

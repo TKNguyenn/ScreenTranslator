@@ -127,6 +127,7 @@ class ProviderProfile:
     base_url: str = "https://api.openai.com/v1"
     api_key: str = ""
     api_key_env: str = ""
+    region: str = "southeastasia"
     allow_no_api_key: bool = False
     model: str = ""
     models: tuple[str, ...] = ()
@@ -371,11 +372,23 @@ def provider_profile_from_dict(values: dict[str, Any]) -> ProviderProfile:
     allowed = ProviderProfile.__dataclass_fields__.keys()
     filtered = {key: value for key, value in values.items() if key in allowed}
     from app.providers.google_translate_addon import infer_google_provider_type
+    from app.providers.microsoft_provider import is_microsoft_url, MICROSOFT_TYPE
     kind = str(filtered.get("type", "openai_compatible")).strip().lower()
     if kind in {"openai_compatible", "openai-compatible", "compatible", "auto", ""}:
         detected = infer_google_provider_type(str(filtered.get("base_url", "")))
         if detected:
             filtered["type"] = detected
+        elif is_microsoft_url(str(filtered.get("base_url", ""))):
+            filtered["type"] = MICROSOFT_TYPE
+    if filtered.get("type") == MICROSOFT_TYPE:
+        filtered.pop('api_key_env', None)
+        filtered.pop('timeout_s', None)
+        region = filtered.get("region", "southeastasia")
+        if not isinstance(region, str) or (region.strip() and not all(c in 'abcdefghijklmnopqrstuvwxyz0123456789' for c in region.strip().lower())):
+            raise ValueError("Microsoft Translator region không hợp lệ.")
+        filtered["region"] = region.strip().lower()
+        filtered["model"] = "microsoft-translator"
+        filtered["models"] = ("microsoft-translator",)
 
     paths = dict(DEFAULT_ENDPOINT_PATHS)
     user_paths = filtered.get("endpoint_paths")
@@ -428,11 +441,14 @@ def provider_profile_to_dict(profile: ProviderProfile) -> dict[str, Any]:
     data = asdict(profile)
     data["models"] = list(profile.available_models())
     data["auto_order"] = list(profile.auto_order)
+    if profile.type == 'microsoft_translator':
+        data.pop('api_key_env', None)
+        data.pop('timeout_s', None)
     return data
 
 
 def portable_provider_entry(profile: ProviderProfile | dict[str, Any]) -> dict[str, Any]:
-    """Return the exact portable schema: base_url, api_key, models."""
+    """Portable connection fields; Microsoft additionally keeps region."""
     from app.trial import is_trial_profile
     values = asdict(profile) if isinstance(profile, ProviderProfile) else profile
     if is_trial_profile(values):
@@ -454,16 +470,24 @@ def portable_provider_entry(profile: ProviderProfile | dict[str, Any]) -> dict[s
         active_model = str(profile.get("model", "")).strip()
         if active_model and active_model not in models:
             models.insert(0, active_model)
-    return {
+    entry = {
         "base_url": base_url,
         "api_key": api_key,
         "models": list(dict.fromkeys(models)),
     }
+    from app.providers.microsoft_provider import is_microsoft_url, MICROSOFT_TYPE
+    if values.get("type") == MICROSOFT_TYPE or is_microsoft_url(base_url):
+        entry["region"] = values.get("region", "southeastasia")
+    return entry
 
 
 def profile_override_entry(profile: ProviderProfile | dict[str, Any]) -> dict[str, Any]:
     """Return app-specific provider settings that must stay out of providers.json."""
     data = provider_profile_to_dict(profile) if isinstance(profile, ProviderProfile) else dict(profile)
+    from app.providers.microsoft_provider import is_microsoft_url
+    if data.get('type') == 'microsoft_translator' or is_microsoft_url(str(data.get('base_url', ''))):
+        data.pop('api_key_env', None)
+        data.pop('timeout_s', None)
     for key in ("base_url", "api_key", "models"):
         data.pop(key, None)
 

@@ -12,6 +12,7 @@ class ProviderCatalogStore:
     """Atomic store for the portable provider catalog.
 
     File schema is intentionally minimal and portable across app versions:
+    Microsoft entries additionally preserve region.
 
     {
       "Provider name": {

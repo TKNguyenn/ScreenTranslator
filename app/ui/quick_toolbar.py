@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMenu, QPushButton
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
 from app.config import QuickUxSection
 from app.ui.floating_surface import FloatingSurface
@@ -29,9 +29,6 @@ def clamp_floating_position(
 
 class QuickToolbar(FloatingSurface):
     language_requested = Signal(str)
-    translate_replace_requested = Signal()
-    settings_requested = Signal()
-    close_requested = Signal()
 
     def __init__(self, config: QuickUxSection) -> None:
         super().__init__()
@@ -66,20 +63,6 @@ class QuickToolbar(FloatingSurface):
             button.clicked.connect(lambda checked=False, lang=code: self.language_requested.emit(lang))
             layout.addWidget(button)
             self._buttons[code] = button
-        self._more = QPushButton("…", self)
-        self._more.setToolTip("Thao tác khác")
-        self._more.setFocusPolicy(Qt.NoFocus)
-        self._more.setCursor(Qt.PointingHandCursor)
-        menu = QMenu(self._more)
-        menu.addAction("Dịch và thay thế (ngôn ngữ đang chọn)", lambda: self.translate_replace_requested.emit())
-        menu.addSeparator()
-        menu.addAction("Cài đặt Quick UX", lambda: self.settings_requested.emit())
-        menu.addAction("Ẩn toolbar", lambda: self.close_requested.emit())
-        self._more.setMenu(menu)
-        self._menu = menu
-        menu.aboutToShow.connect(lambda: self._dismiss_timer.stop())
-        menu.aboutToHide.connect(lambda: self._dismiss_timer.start(1400))
-        layout.addWidget(self._more)
         self.setStyleSheet("""
             QLabel#toolbarBadge { color: #72e1d5; font-size: 12px; font-weight: 700; padding: 0 6px; }
             QFrame#toolbarDivider { background: #28718a; border: none; }
@@ -88,10 +71,6 @@ class QuickToolbar(FloatingSurface):
                 font-size: 13px; font-weight: 600; min-width: 24px; }
             QWidget#quickToolbar QPushButton:hover { background: #185268; border-color: #38BDF8; }
             QWidget#quickToolbar QPushButton:pressed { background: #426886; }
-            QMenu { background: #0D2031; color: #f4f7ff; border: 1px solid #38BDF8; padding: 5px; }
-            QMenu::item { padding: 8px 14px; border-radius: 4px; }
-            QMenu::item:selected { background: #335271; }
-            QMenu::separator { background: #40516c; height: 1px; margin: 4px 8px; }
         """)
         self._dismiss_timer = QTimer(self)
         self._dismiss_timer.setSingleShot(True)
@@ -120,8 +99,7 @@ class QuickToolbar(FloatingSurface):
         super().enterEvent(event)
 
     def leaveEvent(self, event) -> None:
-        if not self._menu.isVisible():
-            self._dismiss_timer.start(1400)
+        self._dismiss_timer.start(1400)
         super().leaveEvent(event)
 
     def hideEvent(self, event) -> None:

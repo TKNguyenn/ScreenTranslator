@@ -42,8 +42,22 @@ def create_translation_provider(
     provider_type = profile.type.lower().strip()
     if provider_type in {"openai_compatible", "openai-compatible", "compatible", "auto", ""}:
         provider_type = infer_google_provider_type(profile.base_url) or provider_type
+        from app.providers.microsoft_provider import is_microsoft_url
+        if is_microsoft_url(profile.base_url):
+            provider_type = "microsoft_translator"
     if provider_type in {"google_translate_web", "google_cloud_translate"}:
         return create_google_provider(name, profile, provider_type=provider_type)
+    if provider_type == "microsoft_translator":
+        from app.providers.microsoft_provider import MicrosoftTranslationProvider
+        from microsoft_translator_usage import LocalUsageLedger
+        import logging
+        import sqlite3
+        usage = None
+        try:
+            usage = LocalUsageLedger(config.data_dir / "microsoft_usage.sqlite3")
+        except (OSError, sqlite3.Error):
+            logging.getLogger(__name__).warning("Cannot initialize Microsoft usage ledger", exc_info=True)
+        return MicrosoftTranslationProvider(name, profile, usage=usage)
 
     if provider_type == "mock":
         return MockTranslationProvider(

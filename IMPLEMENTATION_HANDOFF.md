@@ -1,3 +1,11 @@
+# Release 0.4.1.11 ? 2026-10-20
+
+Microsoft Translator now supports API key/Region configuration and local monthly usage accounting in SQLite. Cached translations do not add usage. This release uses local usage only; no cloud usage sign-in is included. The selection toolbar now shows only language actions, and the popup uses a borderless ?? with 50% opacity unpinned and 100% pinned.
+
+Validation: 215 source tests pass, final frozen EXE passes 9 offline checks, and 58 product modules match the accepted source. Setup SHA256: e8955af08a532aacf6f1a4b088d13257378ce2f11b068f6c653d9154d98f7e28 (111973776 bytes). Version 0.4.1.11. Installer execution and live provider calls were not repeated for this release. Earlier handoff entries below are historical.
+
+---
+
 # Daily startup update check (2026-10-17, V0.4.1.10)
 
 User accepted the provider-save fix; 0.4.1.10 additionally checks GitHub once per Vietnam calendar day when the app starts, including first use. TrialUsageStore.claim_update_check atomically records last_update_check_date in data/trial_usage.json under its shared worker lock. This marker is independent of checks/date/spent, so opening Trial, quota resets and translations preserve the update schedule. Controller.start schedules _check_updates_on_startup after showing the window; _check_for_updates is shared with manual clicks and only requests release metadata, never downloads. An offline attempt counts for the day; manual retry remains available. Local disk errors log and skip the automatic request without preventing startup. No timer checks for updates while the app remains open overnight; the requested trigger is app startup. Version stays 0.4.1.10. Validation: 196 unit/widget tests and compileall pass. Rebuilt Setup passes all 8 packaged offline checks; archive inspection confirms startup callback and claim_update_check are bundled, with personal root configs excluded. Evidence: artifacts/daily-update-tests.log, daily-update-build.log and daily-update-self-check.json. Setup is 111926728 bytes; SHA256 7ad8c1bc04448cec192d2fe0f2e02bfd95e1858be811f14242e71137a207104f (supersedes the earlier local 0.4.1.10 artifact). Full install/uninstall and live GitHub checks were not repeated; installed app was left running. No source sync/push/release requested for this follow-up.
