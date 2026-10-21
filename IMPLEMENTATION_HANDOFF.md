@@ -1,3 +1,15 @@
+# Built 0.4.1.12 — 2026-10-21 (local only)
+
+User requested packaging the accepted loading wave. Updated app/version.py, installer default and Windows release instructions to 0.4.1.12; retained user's animation and existing unsigned build pipeline. 218 source tests, compile, native Windows Quick UX smoke and 17 native popup tests pass. Final frozen EXE passes 9 offline checks; all 58 product modules match source, including WaveTranslationOutput. Setup metadata 0.4.1.12; release/AI-Screen-Translator-0.4.1.12-Setup.exe 111958270 bytes SHA256 95f6b8a7537936ac335c0eae55f2e606f6910fa9b2880d91aaf6a28f13732ae9. EXE 7917584 bytes SHA256 bd109e3c9b5110183965170269c11ceff833c9a967653e8891ed7d2565eaa6b6; keep _internal beside it. Evidence artifacts/build-0.4.1.12-20261021-114924/result.json and logs. No install/uninstall, live provider call, repo sync/push or release. Public baseline remains v0.4.1.11; source-only/no-build statements below are historical.
+
+# Loading wave — 2026-10-21 (source only)
+
+User approved the animated preview and requested integration into the Quick Translation popup. `app/ui/quick_popup.py` now paints the loading text as a left-to-right wave (5 logical pixels, 1650 ms cycle, 85 ms character stagger, cyan at the crest). A Qt timer repaints only while loading and visible; streaming, final/cache results, errors and hide/close stop it. The text remains in the document for accessibility. Existing controller/provider interfaces are unchanged; no dependency added.
+
+Validation: 218 unittest tests pass (including three new animation/lifecycle tests), app compileall passes, native Windows UI smoke passes. Inspected actual Qt render at `artifacts/loading-wave-popup.png`; test log: `artifacts/loading-wave-tests.log`. The synthetic mouse callback exception in that log is an intentional existing test. No live provider request or installer/EXE rebuild performed; packaged 0.4.1.11 still predates this change.
+
+---
+
 # Release 0.4.1.11 ? 2026-10-20
 
 Microsoft Translator now supports API key/Region configuration and local monthly usage accounting in SQLite. Cached translations do not add usage. This release uses local usage only; no cloud usage sign-in is included. The selection toolbar now shows only language actions, and the popup uses a borderless ?? with 50% opacity unpinned and 100% pinned.

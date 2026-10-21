@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen, QTextCursor
+import math
+
+from PySide6.QtCore import QElapsedTimer, QPoint, QPointF, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QFontMetricsF, QGuiApplication, QPainter, QPalette, QPen, QTextCursor
 from PySide6.QtWidgets import (
     QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QSizeGrip, QSplitter,
     QVBoxLayout, QWidget,
@@ -14,6 +16,58 @@ from app.ui.theme import asset_icon
 
 
 TARGET_LABELS = {"vi": "Tiếng Việt", "en": "English", "zh-Hant": "繁體中文"}
+
+
+class WaveTranslationOutput(QPlainTextEdit):
+    def __init__(self) -> None:
+        super().__init__()
+        self._loading = False
+        self._wave_clock = QElapsedTimer()
+        self._wave_timer = QTimer(self)
+        self._wave_timer.setInterval(33)
+        self._wave_timer.timeout.connect(self.viewport().update)
+
+    def start_loading(self) -> None:
+        # Keep real text available to accessibility while painting the animated glyphs.
+        self.setPlainText("Đang dịch...")
+        self._loading = True
+        self._wave_clock.start()
+        if self.isVisible():
+            self._wave_timer.start()
+        self.viewport().update()
+
+    def setPlainText(self, text: str) -> None:
+        self._loading = False
+        self._wave_timer.stop()
+        super().setPlainText(text)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._loading:
+            self._wave_timer.start()
+
+    def hideEvent(self, event) -> None:
+        self._wave_timer.stop()
+        super().hideEvent(event)
+
+    def paintEvent(self, event) -> None:
+        if not self._loading:
+            super().paintEvent(event)
+            return
+        painter = QPainter(self.viewport())
+        painter.fillRect(event.rect(), self.palette().brush(QPalette.Base))
+        painter.setRenderHint(QPainter.TextAntialiasing)
+        painter.setFont(self.document().defaultFont())
+        metrics = QFontMetricsF(painter.font())
+        origin = self.cursorRect(QTextCursor(self.document())).topLeft()
+        text = self.toPlainText()
+        elapsed = self._wave_clock.elapsed()
+        for index, letter in enumerate(text):
+            phase = ((elapsed - index * 85) % 1650) / 1650
+            lift = (1 - math.cos(2 * math.pi * phase / .6)) / 2 if phase < .6 else 0
+            painter.setPen(QColor(round(238 - 139 * lift), round(245 - 6 * lift), 255))
+            x = origin.x() + metrics.horizontalAdvance(text[:index])
+            painter.drawText(QPointF(x, origin.y() + metrics.ascent() - 5 * lift), letter)
 
 
 class PopupSizeGrip(QSizeGrip):
@@ -100,7 +154,7 @@ class QuickTranslationPopup(FloatingSurface):
         self._splitter = QSplitter(Qt.Vertical, self)
         self._splitter.setChildrenCollapsible(False)
         self._splitter.setHandleWidth(6)
-        self._output = QPlainTextEdit()
+        self._output = WaveTranslationOutput()
         self._output.setObjectName("translationOutput")
         self._output.setReadOnly(True)
         self._output.setFocusPolicy(Qt.NoFocus)
@@ -227,7 +281,7 @@ class QuickTranslationPopup(FloatingSurface):
         self._anchor = QPoint(anchor)
         self._headline.setText(f"Bản dịch · {TARGET_LABELS.get(target, target)}")
         self._meta.setText(f"{provider_name} / {model}\n{style} · {speed}")
-        self._output.setPlainText("Đang dịch...")
+        self._output.start_loading()
         self._original_view.setPlainText(original)
         self._original_view.setVisible(self._show_original.isChecked())
         self._feedback.setText("Đang dịch…")
@@ -246,7 +300,7 @@ class QuickTranslationPopup(FloatingSurface):
         if not self._stream_buffer or self._pending_job is None:
             return
         if not self._translation:
-            self._output.clear()
+            self._output.setPlainText("")
         scrollbar = self._output.verticalScrollBar()
         follow = scrollbar.value() >= scrollbar.maximum() - 4
         scroll_position = scrollbar.value()

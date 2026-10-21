@@ -126,6 +126,39 @@ class QuickUxWidgetTests(unittest.TestCase):
                          "Local test", "test-model", QPoint(5, 5), False)
         self.assertEqual(self.popup.size(), expected.size())
 
+    def test_loading_text_animates_then_stops_for_stream(self):
+        from PySide6.QtTest import QTest
+        self.start()
+        output = self.popup._output
+        first = output.viewport().grab().toImage()
+        QTest.qWait(220)
+        self.assertNotEqual(first, output.viewport().grab().toImage())
+        self.assertFalse(self.popup._copy.isEnabled())
+        self.popup.append_delta("job", "Bản dịch")
+        self.popup._flush_stream()
+        self.assertEqual(output.toPlainText(), "Bản dịch")
+        self.assertFalse(output._wave_timer.isActive())
+
+    def test_loading_timer_stops_on_result_error_and_close(self):
+        for action in (lambda: self.popup.finish("job", "Hoàn tất", False),
+                       lambda: self.popup.finish("job", "Bộ nhớ đệm", True),
+                       lambda: self.popup.fail("job", "Test error"),
+                       self.popup.force_close, self.popup.hide):
+            with self.subTest(action=action):
+                self.start()
+                self.assertTrue(self.popup._output._wave_timer.isActive())
+                action()
+                self.assertFalse(self.popup._output._wave_timer.isActive())
+
+    def test_stale_result_does_not_stop_new_loading_animation(self):
+        self.start("old")
+        self.start("new")
+        self.popup.finish("old", "Stale", False)
+        self.popup.fail("old", "Stale error")
+        self.popup.append_delta("old", "Stale delta")
+        self.assertTrue(self.popup._output._wave_timer.isActive())
+        self.assertEqual(self.popup._output.toPlainText(), "Đang dịch...")
+
     def test_error_keeps_user_geometry(self):
         self.start()
         self.popup.setGeometry(40, 50, 520, 440)

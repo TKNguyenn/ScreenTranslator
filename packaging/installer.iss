@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.4.1.11"
+  #define AppVersion "0.4.1.12"
 #endif
 #ifndef InstallId
   #define InstallId "AIScreenTranslator-96F65CB7-531C-4202-B340-B90251E5B2AC"
