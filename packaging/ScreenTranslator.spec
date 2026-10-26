@@ -20,7 +20,7 @@ datas += [(str(Path(sys.base_prefix) / "LICENSE.txt"), "licenses/Python"),
 a = Analysis([str(root / "main.py")], pathex=[str(root)], datas=datas,
              hiddenimports=["pynput.mouse._win32", "pynput.keyboard._win32", "keyboard._winkeyboard",
                             "comtypes.gen.UIAutomationClient", "PySide6.QtSvg"],
-             excludes=["tkinter", "matplotlib", "torch", "tensorflow", "pandas", "IPython", "pytest"],
+             excludes=["tkinter", "matplotlib", "torch", "tensorflow", "pandas", "IPython", "pytest", "pygments"],
              noarchive=False)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="ScreenTranslator",

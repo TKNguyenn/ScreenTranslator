@@ -112,14 +112,17 @@ class UpdateUiTests(unittest.TestCase):
             _config=AppConfig(), _main_window=self.window, _profile=SimpleNamespace(model="test"),
             _profile_name="Custom", _target_language="vi", _startup_provider_error=None,
             _check_updates_on_startup=Mock(), _tray=Mock(), _refresh_tray_state=Mock(),
+            _show_usage_guide_on_startup=Mock(),
             **{name: Mock() for name in ("_foreground_tracker", "_quick_selection_worker",
                "_mouse_selection_monitor", "_input_worker", "_ocr_worker", "_translation_worker", "_hotkeys")})
         AppController.start(controller)
         self.addCleanup(self.window.hide)
         self.assertTrue(self.window.isVisible())
         controller._check_updates_on_startup.assert_not_called()
+        controller._show_usage_guide_on_startup.assert_not_called()
         self.app.processEvents()
         controller._check_updates_on_startup.assert_called_once()
+        controller._show_usage_guide_on_startup.assert_called_once()
 
     def test_update_marker_and_trial_workers_share_atomic_writes(self):
         from concurrent.futures import ThreadPoolExecutor

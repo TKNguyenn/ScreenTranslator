@@ -61,6 +61,7 @@ from app.ui.quick_toolbar import QuickToolbar
 from app.ui.quick_popup import QuickTranslationPopup
 from app.prompts import prompt_is_custom, validate_prompt_template
 from app.ui.main_window import MainWindow
+from app.ui.usage_guide import UsageGuideDialog
 from app.ui.popup import TranslationPopup
 from app.ui.region_selector import RegionSelectorOverlay
 from app.ui.tray import TrayIcon
@@ -266,6 +267,8 @@ class AppController(QObject):
         self._region_selector.failed.connect(self._on_region_failed)
 
         self._main_window = MainWindow(app=app, config=config)
+        self._usage_guide: UsageGuideDialog | None = None
+        self._main_window.usage_guide_requested.connect(self._show_usage_guide)
         self._available_update: Release | None = None
         self._updates = UpdateManager(self)
         self._updates.checked.connect(self._on_update_checked)
@@ -327,6 +330,7 @@ class AppController(QObject):
             on_show_diagnostics=self._show_diagnostics,
             on_reload_config=self._reload_config,
             on_quit=app.quit,
+            on_open_usage_guide=self._show_usage_guide,
         )
 
     @property
@@ -364,6 +368,34 @@ class AppController(QObject):
                 "Provider configuration error",
                 self._startup_provider_error,
             )
+        QTimer.singleShot(0, self._show_usage_guide_on_startup)
+
+    def _show_usage_guide_on_startup(self) -> None:
+        if self._runtime_settings.load().get('onboarding_seen') is not True:
+            self._show_usage_guide()
+
+    @Slot()
+    def _show_usage_guide(self) -> None:
+        if self._usage_guide is not None and self._usage_guide.isVisible():
+            self._usage_guide.raise_()
+            self._usage_guide.activateWindow()
+            return
+        try:
+            self._main_window.show_from_tray()
+            guide = UsageGuideDialog(self._config.hotkeys, self._main_window)
+            screen = self._main_window.screen().availableGeometry()
+            guide.resize(min(700, screen.width() - 40), min(740, screen.height() - 80))
+            guide.show()
+            if self._usage_guide is not None:
+                self._usage_guide.deleteLater()
+            self._usage_guide = guide
+        except Exception:
+            logger.exception('Cannot open usage guide')
+            return
+        try:
+            self._runtime_settings.update(onboarding_seen=True)
+        except OSError:
+            logger.warning('Cannot persist usage guide marker; guide may appear again', exc_info=True)
 
     @Slot()
     def shutdown(self) -> None:

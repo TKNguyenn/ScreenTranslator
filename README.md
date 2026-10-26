@@ -34,6 +34,14 @@ Bản cài đặt đã kèm môi trường chạy và OCR, không cần cài Pyt
 
 ## Bắt đầu sử dụng
 
+### Hướng dẫn bằng hình minh họa
+
+Lần đầu mở app, cửa sổ **Hướng dẫn sử dụng** tự hiện với năm trang: dịch bôi đen, dịch chữ trong ảnh, dịch và thay thế, sử dụng popup, và thiết lập/trợ giúp. Mỗi trang có giao diện minh họa cùng thao tác thử bằng văn bản mẫu; không gửi yêu cầu dịch. Nút **Sao chép** sao chép bản dịch mẫu vào clipboard. Phím tắt trong hướng dẫn lấy từ cấu hình hiện tại.
+
+Bấm **Tiếp theo**, **Quay lại** hoặc dấu trang để chuyển; **Bỏ qua**, **Esc** hoặc nút đóng để kết thúc. Sau khi cửa sổ hiện thành công, app lưu cờ `onboarding_seen` trong `data/runtime_settings.json`, nên các lần mở tiếp theo không tự hiện nữa, kể cả khi đã bỏ qua. Nếu chưa có cờ (bao gồm lần đầu dùng tính năng sau khi cập nhật), hướng dẫn sẽ hiện một lần; xóa dữ liệu runtime sẽ làm hiện lại.
+
+Bạn luôn có thể mở lại bằng **Hướng dẫn sử dụng** ở cuối sidebar hoặc menu biểu tượng app trong khay hệ thống. Mở lại bắt đầu từ trang đầu và nạp phím tắt mới nhất.
+
 ### Chọn dịch vụ dịch
 
 Bản cài mới có sẵn **Google Translate Free** và **Trial**. Mặc định app dùng Google Free và dịch sang **tiếng Việt**, nên bạn có thể thử dịch ngay mà không cần nhập API key.

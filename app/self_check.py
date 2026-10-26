@@ -13,7 +13,7 @@ def run_self_check(report_path: Path) -> int:
         config = AppConfig.load()
         from PySide6.QtCore import QBuffer, QIODevice, QPoint
         from PySide6.QtGui import QFont, QImage, QPainter
-        from PySide6.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication, QPushButton
         from app.ui.main_window import MainWindow
         from app.ui.quick_popup import QuickTranslationPopup
         from app.ui.quick_toolbar import QuickToolbar
@@ -54,6 +54,15 @@ def run_self_check(report_path: Path) -> int:
         assert window._nav.currentItem().text() == "Cài đặt"
         assert len(window._hotkey_edits) == 7
         report["checks"].append("Hotkey settings page and editable shortcuts (no registration)")
+        from app.ui.usage_guide import UsageGuideDialog
+        assert window.findChild(QPushButton, 'usageGuideButton') is not None
+        guide = UsageGuideDialog(config.hotkeys, window)
+        for index in range(5):
+            guide._go(index)
+            assert guide._counter.text() == f'{index + 1} / 5'
+            assert not guide.grab().isNull()
+        guide.close()
+        report["checks"].append("Five-page offline usage guide and Help entry (no marker write or API)")
         toolbar = QuickToolbar(config.quick_ux)
         popup = QuickTranslationPopup(config.quick_ux)
         popup.resize(550, 420)

@@ -1,3 +1,15 @@
+# 0.5.0 release handoff — 2026-10-26
+
+User accepted the rebuilt app and authorized push/release. The five-page first-launch guide and Help reopening remain unchanged. PyInstaller excludes unused optional Pygments; no package was uninstalled. Clean unsigned build: 227 source tests, 10 native frozen checks, 59 product modules verified, version/guide/Pygments absence checked; EXE and Setup hashes stable with no new matching Trend Micro detection during observation.
+
+Setup: 111993576 bytes, SHA256 5bdd281f6e3716edd3895e2d618c82311b199a56e3b0012de095801847d9bbab. Portable EXE: 7952226 bytes, SHA256 def91ab5e7133cc722dc6643b5e7e21f55e4d8b1270d75691a7d38cee0d100eb, at dist/ScreenTranslator-0.5.0/ with _internal. Prior blocked Setup is retained in historical build artifacts. A focused partial security review retains one known low CWE-532 response-body logging issue; no high/critical in inspected surfaces, no malware clearance. Full install/update/live API acceptance was not repeated. Earlier entries below are historical.
+
+# Usage guide — 2026-10-24 (source only; approved prototype integrated)
+
+Added app/ui/usage_guide.py: native themed five-page offline walkthrough with widget illustrations, sample language/OCR/replace/pin/copy interactions, current configured shortcuts, next/back/dots, skip/Esc/X and compact-screen scrolling. Copy writes the fixed sample translation to clipboard; demos never invoke providers or input automation. MainWindow footer and tray Help action connect to AppController._show_usage_guide. Startup defers the guide until after showing the main window and handling initial provider errors. RuntimeSettingsStore merges onboarding_seen=true only after successful display; dismiss/skip counts as seen, updates retain it, absent marker (including existing users first receiving this feature) shows once. Visible guide is reused; reopening starts at page 1 with current config. Marker write failure logs a warning without blocking startup.
+
+Validation: 227 unittest tests pass (9 guide tests); guide tests pass on native Windows Qt at scale 150%; native smoke at 100% and 150% checks five pages, wrapped text, sidebar, scroll and footer; source offline self-check 10/10 pass including guide rendering; compileall pass. Added guide coverage to app/self_check.py. Evidence artifacts/usage-guide/source-self-check.json, smoke.py and page-1..5/sidebar/compact PNGs. Review reported no confirmed blockers; native visual acceptance and frozen behavior remain user/release acceptance. No dependencies, version bump, EXE/Setup build, live translation, push or publish. Existing packaged 0.4.1.12 artifacts predate the guide.
+
 # Built 0.4.1.12 — 2026-10-21 (local only)
 
 User requested packaging the accepted loading wave. Updated app/version.py, installer default and Windows release instructions to 0.4.1.12; retained user's animation and existing unsigned build pipeline. 218 source tests, compile, native Windows Quick UX smoke and 17 native popup tests pass. Final frozen EXE passes 9 offline checks; all 58 product modules match source, including WaveTranslationOutput. Setup metadata 0.4.1.12; release/AI-Screen-Translator-0.4.1.12-Setup.exe 111958270 bytes SHA256 95f6b8a7537936ac335c0eae55f2e606f6910fa9b2880d91aaf6a28f13732ae9. EXE 7917584 bytes SHA256 bd109e3c9b5110183965170269c11ceff833c9a967653e8891ed7d2565eaa6b6; keep _internal beside it. Evidence artifacts/build-0.4.1.12-20261021-114924/result.json and logs. No install/uninstall, live provider call, repo sync/push or release. Public baseline remains v0.4.1.11; source-only/no-build statements below are historical.
@@ -8,13 +20,35 @@ User approved the animated preview and requested integration into the Quick Tran
 
 Validation: 218 unittest tests pass (including three new animation/lifecycle tests), app compileall passes, native Windows UI smoke passes. Inspected actual Qt render at `artifacts/loading-wave-popup.png`; test log: `artifacts/loading-wave-tests.log`. The synthetic mouse callback exception in that log is an intentional existing test. No live provider request or installer/EXE rebuild performed; packaged 0.4.1.11 still predates this change.
 
----
+# Built 0.4.1.11 — 2026-10-20
 
-# Release 0.4.1.11 ? 2026-10-20
+User requested rebuilding version 0.4.1.11 including toolbar simplification and approved borderless pin. Existing unsigned pipeline completed with -Iscc pointing to the compiler already present in the original development workspace. 215 tests pass, final frozen EXE self-check passes 9 checks, and all 58 product modules match current source. Setup version metadata is 0.4.1.11. Setup: release/AI-Screen-Translator-0.4.1.11-Setup.exe, 111973776 bytes, SHA256 e8955af08a532aacf6f1a4b088d13257378ce2f11b068f6c653d9154d98f7e28. Portable EXE SHA256 82e7a5bd407565f88ba5134dca1542a4229b55d398501368f9e57aea593fd84e; keep dist/ScreenTranslator/_internal alongside it. Evidence: artifacts/build-0.4.1.11-20261020-155323/result.json and logs. No install/uninstall or publication performed. Earlier source-only statements below are historical; these changes are now in this build.
 
-Microsoft Translator now supports API key/Region configuration and local monthly usage accounting in SQLite. Cached translations do not add usage. This release uses local usage only; no cloud usage sign-in is included. The selection toolbar now shows only language actions, and the popup uses a borderless ?? with 50% opacity unpinned and 100% pinned.
+# Popup pin icon — 2026-10-20 (source only)
 
-Validation: 215 source tests pass, final frozen EXE passes 9 offline checks, and 58 product modules match the accepted source. Setup SHA256: e8955af08a532aacf6f1a4b088d13257378ce2f11b068f6c653d9154d98f7e28 (111973776 bytes). Version 0.4.1.11. Installer execution and live provider calls were not repeated for this release. Earlier handoff entries below are historical.
+Approved design implemented: 📌 (U+1F4CC, Segoe UI Emoji), 34px click target, no background/border in normal/hover/checked states. QGraphicsOpacityEffect gives 50% opacity unpinned and 100% pinned; accessible name/tooltip describe the action. Existing pin/dismiss/drag/resize behavior retained. 215 tests pass, changed files compile, native Windows Quick UX smoke passes. Native normal/hover/on/off renders and corner checks: artifacts/pin-icon. EXE/Setup not rebuilt.
+
+# Quick Toolbar simplification — 2026-10-20 (source only)
+
+Removed the overflow button/menu and its unused controller signals/handler. Toolbar keeps logo, Dịch and the configured VI / EN / 繁 buttons; hover pauses auto-hide and leaving resumes it. Replace remains available through existing hotkeys/popup; Quick UX settings remain in the main window. 214 tests pass, changed Python files compile, and native Windows Quick UX smoke passes (opaque/topmost/no-activate/drag/geometry). Preview: artifacts/toolbar-languages-only.png. Existing EXE/Setup artifacts predate this change; no rebuild or publication in this task.
+
+This source copy keeps version 0.4.1.11 and the existing unsigned build workflow.
+
+Microsoft Text Translation uses the user's API key and Region. Local usage records successful requests in data/microsoft_usage.sqlite3, prefers X-Metered-Usage, and otherwise records an estimate. Cached translations do not add usage. Monthly totals use Vietnam time and aggregate Microsoft profiles on this machine.
+
+The cloud usage sign-in UI, account/resource fields, background worker, remote metric sync, encrypted session self-check and related Python dependencies/build collection have been removed. Existing local request events remain readable. If an older database contains a remote snapshot table, it is left untouched and ignored; the displayed total comes only from local request events.
+
+Validation on 2026-10-20: 212 unit/widget tests pass; native Windows source self-check passes 9 checks including Microsoft UI/catalog, UI Automation and local OCR. Offscreen self-check OCR initially failed due unavailable fonts; native Windows check passed. Independent reviewer transport was unavailable, so source/import/caller checks were completed inline.
+
+No personal configuration, API keys, databases or generated EXEs were copied. Root config/catalog files use clean examples. The original development workspace and separate v0.4.1.10 clone are unchanged. No build, installation, network translation or publication performed for this source copy.
+
+# Microsoft Translator source integration (2026-10-19)
+
+Added a direct Microsoft provider using the two user-supplied root modules and a small app adapter. Fixed official Text v3 endpoint, editable region (default southeastasia), key/env support, source auto/zh-Hant mappings, 50K local request guard and no streaming/prompt. Type is inferred from the exact HTTPS official URL for portable imports; factory also handles raw ProviderProfile values. Region is a Microsoft-only optional catalog field retained through save/import/export/rename, overriding app config like other connection fields. Ordinary catalogs retain three fields; defaults remain Google Free + Trial. No user configuration changed.
+
+UI has + Microsoft on a separate compact row, key/region editor, key test and monthly local usage; model/streaming/OpenAI endpoint controls hidden. Worker/controller reuse direct-provider behavior; translation and provider-test callbacks refresh usage. Root microsoft_translator_usage.py closes SQLite connections explicitly (connection context managers only commit/rollback and otherwise held Windows file locks). App passes data/microsoft_usage.sqlite3 instead of the standalone module's LocalAppData default. One local aggregate across Microsoft profiles, not resource quota; monthly UTC+7 query retains previous history. Uses X-Metered-Usage when available, estimates otherwise, counts successful network calls/test once, ignores cache, deduplicates request IDs and preserves translation on ledger errors. No key/text stored in usage. Quota/billing are Azure-authoritative.
+
+Validation: 208 unit/widget tests and compileall pass; 9 native offline source checks pass, including Microsoft UI/catalog/ledger and existing OCR/Quick UX. Native 1180px/900px renders generated in artifacts/microsoft-ui; compact width assert passes. Evidence artifacts/microsoft-tests.log and microsoft-source-self-check.json. No live Azure request or credential used. No installer rebuild or publication; current source version remains 0.4.1.10 while the public .10 installer predates this feature. Next packaging must include both root Microsoft modules (PyInstaller follows imports), update version, verify frozen self-check and follow release workflow after user acceptance. Public .10 main/tag verified earlier at a5a5d8ca2c721e4231889725836309f87909e842, Setup digest 7ad8c1bc04448cec192d2fe0f2e02bfd95e1858be811f14242e71137a207104f; older .9/unpublished notes below are historical.
 
 ---
 

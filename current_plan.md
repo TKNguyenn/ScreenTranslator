@@ -1,5 +1,19 @@
 # CURRENT PLAN — AI SCREEN TRANSLATOR
 
+## Trạng thái hiện tại — 2026-10-26, v0.5.0
+
+Popup hướng dẫn năm trang đã được người dùng dùng thử và chấp nhận. Giữ hành vi hiện lần đầu và mở lại từ sidebar/tray. Packaging loại Pygments (dependency tùy chọn của HTTPX CLI, app không dùng). Build sạch 0.5.0: 227 tests đạt, native frozen self-check 10/10, 59 module ứng dụng khớp source; EXE/Setup tồn tại, hash ổn định, không có cảnh báo Trend Micro mới trong thời gian theo dõi.
+
+Setup `release/AI-Screen-Translator-0.5.0-Setup.exe`: 111993576 byte, SHA256 `5bdd281f6e3716edd3895e2d618c82311b199a56e3b0012de095801847d9bbab`. Portable `dist/ScreenTranslator-0.5.0/ScreenTranslator.exe`: 7952226 byte, SHA256 `def91ab5e7133cc722dc6643b5e7e21f55e4d8b1270d75691a7d38cee0d100eb`; giữ `_internal`. Người dùng đã yêu cầu push và phát hành v0.5.0; public baseline trước lượt này là v0.4.1.12 tại commit `6c24b9b32e55745a4df46cb7e2781bbab340ec95`.
+
+Security review tập trung có một lỗi thấp còn mở: raw response lỗi của OpenAI-compatible provider có thể đi vào log cục bộ (CWE-532); chưa sửa ở 0.5.0. Phạm vi review partial, không phải chứng nhận malware-free. Chưa lặp full install/update hoặc gọi provider thật trong verification tự động. Các mục ngày 24/10 và 21/10 bên dưới là lịch sử, không ghi đè trạng thái này.
+
+## Hướng dẫn sử dụng — 2026-10-24 (source, chưa build)
+
+Đã tích hợp popup PySide6 năm trang theo mẫu được duyệt: minh họa dịch bôi đen, OCR vùng, thay văn bản, popup và Help. Các demo dùng nội dung cố định, không gọi provider; Sao chép ghi bản dịch mẫu vào clipboard. Mở qua nút Hướng dẫn sử dụng ở cuối sidebar và menu tray; giữ một dialog đang hiện, mở lại từ trang đầu, lấy hotkeys hiện tại. Startup mở sau cửa sổ chính và lỗi provider ban đầu nếu có; lưu `onboarding_seen=true` vào RuntimeSettingsStore sau khi hiện thành công, đóng/bỏ qua vẫn tính đã xem. Thiếu cờ thì hiện một lần, bao gồm user cũ nhận tính năng lần đầu; cập nhật bình thường giữ marker. Lỗi ghi marker được log, không chặn app/hướng dẫn. Nội dung có scroll khi màn hình thấp, footer luôn ngoài scroll.
+
+Validation: 227 unittest tests pass; 9 guide tests pass riêng trên Qt Windows ở scale 150%; native smoke cả 100%/150% kiểm tra năm trang, text wrapping, sidebar và compact scroll; source offline self-check 10/10 pass; compileall pass. Evidence `artifacts/usage-guide/` (PNG, smoke.py, source-self-check.json). Chưa build EXE/Setup hoặc thử live provider; version giữ 0.4.1.12. Các artifact build bên dưới có trước thay đổi này.
+
 **Cập nhật:** 2026-10-21 · giờ Việt Nam
 **Source hiện tại:** v0.4.1.12 — thêm loading wave cho popup trên nền MicrosoftOnly .11.
 **Trạng thái:** .12 đã build và verify local ngày 2026-10-21; public baseline là v0.4.1.11 đã phát hành ngày 2026-10-20.

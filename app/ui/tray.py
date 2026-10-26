@@ -50,6 +50,7 @@ class TrayIcon:
         on_show_diagnostics: Callable[[], None],
         on_reload_config: Callable[[], None],
         on_quit: Callable[[], None],
+        on_open_usage_guide: Callable[[], None],
     ) -> None:
         icon = asset_icon()
         self._tray = QSystemTrayIcon(icon)
@@ -77,6 +78,9 @@ class TrayIcon:
         self._open_action.setFont(open_font)
         self._open_action.triggered.connect(on_open_main_window)
         self._menu.addAction(self._open_action)
+        self._guide_action = QAction('Hướng dẫn sử dụng', self._menu)
+        self._guide_action.triggered.connect(on_open_usage_guide)
+        self._menu.addAction(self._guide_action)
         self._menu.addSeparator()
 
         self._translate_action = QAction("Dịch văn bản đang bôi đen", self._menu)

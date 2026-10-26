@@ -90,6 +90,7 @@ class MainWindow(QMainWindow):
     quick_ux_settings_requested = Signal(object)
     hotkeys_settings_requested = Signal(object)
     check_updates_requested = Signal()
+    usage_guide_requested = Signal()
 
     def __init__(self, app: QApplication, config: AppConfig) -> None:
         super().__init__()
@@ -159,6 +160,11 @@ class MainWindow(QMainWindow):
             self._nav.item(index).setIcon(asset_icon("icons/" + icon))
         self._nav.setCurrentRow(0)
         side.addWidget(self._nav, 1)
+        guide_button = QPushButton('Hướng dẫn sử dụng')
+        guide_button.setObjectName('usageGuideButton')
+        guide_button.setIcon(self.style().standardIcon(QStyle.SP_DialogHelpButton))
+        guide_button.clicked.connect(self.usage_guide_requested.emit)
+        side.addWidget(guide_button)
         footer = QFrame()
         footer.setObjectName("sidebarFooter")
         footer_layout = QVBoxLayout(footer)
