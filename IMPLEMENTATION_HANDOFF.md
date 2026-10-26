@@ -1,3 +1,15 @@
+# Built 0.5.1 — 2026-10-26 (local only)
+
+User requested a 0.5.1 build after adjusting the usage guide. Updated app/version.py, installer default and Windows release filenames; guide implementation and tests preserved. Clean unsigned pipeline with filtered child DLL PATH and Pygments excluded: build exit 0, 229 source tests pass, 11 native guide tests at 150% pass, 10 frozen self-checks pass, 59 product modules match current source. Main/assets/defaults and guide hash verified. Trend Micro real-time scanner remains active; no log change during observation and hashes stable.
+
+Setup release/AI-Screen-Translator-0.5.1-Setup.exe: 111990119 bytes SHA256 eb1d80c1b655a510e6888b68cd3fe0dca8b610cf2f7362a07017eaba47b9e57e. Portable dist/ScreenTranslator-0.5.1/ScreenTranslator.exe: 7954116 bytes SHA256 0dd41b563531a960d6a1f6bcafadbcc4431cfdeb07d9192fb0a469340868b87b, keep _internal. Evidence artifacts/build-0.5.1-20261026/. No personal config/data packaged. No new security scan, install/update/live provider calls, repo sync/push/tag/release. Public version remains 0.5.0. Earlier entries below are historical.
+
+# Tray-menu usage guide — 2026-10-26 (approved preview integrated; source only)
+
+User approved the standalone tray guide preview and asked for code integration. Updated page 5 in app/ui/usage_guide.py with actual icon/taskbar illustration, right-click and hidden-icon ^ instructions, simulated menu, exclusive sample language selection and explanations for main window, Help, context, API/model, speed and Quit. Demo callbacks only update guide widgets; icon supports context-menu and keyboard/click activation with visible focus. Existing five-page navigation, startup marker and sidebar/tray entry points retained; no controller or provider changes/dependencies/version bump.
+
+Validation: two new tests failed on missing controls before implementation, then all 229 unittest tests passed (11 guide tests); 11 guide tests also pass on native Windows scale 150%; compileall passes. Native smoke100/150 covers all pages/wrapping/footer/600x500 scrolling and reachable tray icon; renders under artifacts/usage-guide-tray-preview/integrated-scale-100 and integrated-scale-150. Full test log integration-tests.log in same parent contains intentional synthetic mouse-callback exception followed by OK. Independent read-only review found no blockers and reran guide tests successfully. README/current_plan and Shared Brain updated. No build/release sync/push/publish: existing 0.5.0 EXE/Setup does not include this follow-up source change. Open Hướng dẫn sử dụng and navigate to page5 when running current source.
+
 # 0.5.0 release handoff — 2026-10-26
 
 User accepted the rebuilt app and authorized push/release. The five-page first-launch guide and Help reopening remain unchanged. PyInstaller excludes unused optional Pygments; no package was uninstalled. Clean unsigned build: 227 source tests, 10 native frozen checks, 59 product modules verified, version/guide/Pygments absence checked; EXE and Setup hashes stable with no new matching Trend Micro detection during observation.

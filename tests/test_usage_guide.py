@@ -11,9 +11,9 @@ from unittest.mock import patch
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFontDatabase
+from PySide6.QtGui import QContextMenuEvent, QFontDatabase
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QLabel, QPushButton
+from PySide6.QtWidgets import QApplication, QDialog, QFrame, QLabel, QPushButton
 from app.config import AppConfig, HotkeySection
 from app.controller import AppController
 from app.services.runtime_settings import RuntimeSettingsStore
@@ -173,6 +173,44 @@ class UsageGuideTests(unittest.TestCase):
         self.assertTrue(skip.isVisible())
         skip.click()
         self.assertFalse(guide.isVisible())
+
+    def test_tray_icon_context_menu_and_keyboard_toggle_demo(self):
+        self.controller._show_usage_guide()
+        guide = self.controller._usage_guide
+        guide._go(4)
+        icon = guide.findChild(QPushButton, 'guideTrayIconDemo')
+        self.assertIsNotNone(icon)
+        menu = guide.findChild(QFrame, 'guideTrayMenuDemo')
+        self.assertTrue(menu.isVisible())
+        self.assertIn('Nhấp chuột phải', guide._description.text())
+        self.assertIn('dấu ^', guide._note.text())
+        point = icon.rect().center()
+        self.app.sendEvent(icon, QContextMenuEvent(QContextMenuEvent.Mouse, point,
+                                                  icon.mapToGlobal(point)))
+        self.assertFalse(menu.isVisible())
+        icon.setFocus()
+        QTest.keyClick(icon, Qt.Key_Space)
+        self.assertTrue(menu.isVisible())
+        self.assertEqual(guide._pages.count(), 5)
+
+    def test_tray_menu_samples_preserve_runtime_and_do_not_quit(self):
+        self.controller._show_usage_guide()
+        guide = self.controller._usage_guide
+        guide._go(4)
+        settings = self.store.load()
+        language = guide.findChild(QPushButton, 'guideTrayLanguageDemo')
+        self.assertIsNotNone(language)
+        actions = language.menu().actions()
+        actions[1].trigger()
+        status = guide.findChild(QLabel, 'guideTrayStatusDemo')
+        self.assertIn('English', status.text())
+        self.assertEqual([action.isChecked() for action in actions], [False, True, False])
+        actions[2].trigger()
+        self.assertEqual([action.isChecked() for action in actions], [False, False, True])
+        guide.findChild(QPushButton, 'guideTrayQuitDemo').click()
+        self.assertIn('menu thật', status.text())
+        self.assertTrue(guide.isVisible())
+        self.assertEqual(self.store.load(), settings)
 
 
 if __name__ == '__main__':

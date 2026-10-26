@@ -1,9 +1,10 @@
 """Local, offline walkthrough; demonstrations never submit translation jobs."""
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QActionGroup
 from PySide6.QtWidgets import (
-    QApplication, QDialog, QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPushButton,
+    QApplication, QDialog, QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QMenu, QPushButton,
     QScrollArea, QStackedWidget, QVBoxLayout, QWidget,
 )
 
@@ -29,7 +30,7 @@ class UsageGuideDialog(QDialog):
             QFrame#guideStage { background: #142237; border: 1px solid #263C54; border-radius: 12px; }
             QFrame#guidePaper { background: #F1F4F8; border: 1px solid #D6E1EC; border-radius: 10px; }
             QFrame#guidePaper QLabel { color: #26354B; }
-            QFrame#guidePopup { background: #0B1627; border: 1px solid #32788B; border-radius: 10px; }
+            QFrame#guidePopup, QFrame#guideTrayMenuDemo { background: #0B1627; border: 1px solid #32788B; border-radius: 10px; }
             QLabel#guideTitle { font-size: 25px; font-weight: 600; color: #EEF5FF; }
             QLabel#guideDescription { font-size: 14px; color: #B6C5D8; }
             QLabel#guideNote { color: #A9B9CC; font-size: 12px; }
@@ -88,7 +89,7 @@ class UsageGuideDialog(QDialog):
         footer.addStretch()
         self._dots = []
         for index, label in enumerate(('Dịch bôi đen', 'Dịch chữ trong ảnh', 'Dịch và thay thế',
-                                        'Sử dụng popup', 'Thiết lập và trợ giúp')):
+                                        'Sử dụng popup', 'Menu khay hệ thống và trợ giúp')):
             dot = self._button('●', lambda checked=False, i=index: self._go(i))
             dot.setFixedSize(24, 30)
             dot.setStyleSheet('padding: 0; border: none; background: transparent;')
@@ -239,16 +240,73 @@ class UsageGuideDialog(QDialog):
 
     def _help_page(self):
         stage, layout = self._stage()
-        for title, detail in (('Provider & Model', 'Chọn dịch vụ dịch đang sử dụng'),
-                              ('Cài đặt', 'Đổi phím tắt theo thói quen của bạn'),
-                              ('Hướng dẫn sử dụng', 'Mở lại từ cuối sidebar hoặc menu khay hệ thống')):
-            frame = QFrame()
-            frame.setObjectName('guidePopup')
-            row = QVBoxLayout(frame)
-            row.setContentsMargins(16, 10, 16, 10)
-            row.addWidget(self._label(title, color='#D8E8F6'))
-            row.addWidget(self._label(detail, color='#9DB2C8'))
-            layout.addWidget(frame)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(8)
+        layout.addWidget(self._label('Thử menu minh họa bên dưới', color='#9DB2C8'))
+        menu_frame = QFrame()
+        menu_frame.setObjectName('guideTrayMenuDemo')
+        menu_layout = QVBoxLayout(menu_frame)
+        menu_layout.setContentsMargins(8, 6, 8, 6)
+        menu_layout.setSpacing(0)
+        status = self._label('Chọn một mục để xem cách sử dụng.',
+                             name='guideTrayStatusDemo', color='#A9B9CC')
+        for title, detail, name in (
+            ('Mở cửa sổ chính', 'Mở cửa sổ chính để chỉnh cấu hình và phím tắt.', ''),
+            ('Hướng dẫn sử dụng', 'Mở lại hướng dẫn này bất cứ lúc nào.', ''),
+            ('Dịch sang', '', 'guideTrayLanguageDemo'),
+            ('Kiểu dịch    ›', 'Chọn Engineer, Chat hoặc Email theo nội dung cần dịch.', ''),
+            ('API / Model    ›', 'Chọn dịch vụ và model đã cấu hình trong app.', ''),
+            ('Tốc độ dịch    ›', 'Chọn Cực nhanh, Nhanh hoặc Chuẩn.', ''),
+            ('Thoát ứng dụng', 'Chọn mục này trong menu thật để thoát hẳn ứng dụng.', 'guideTrayQuitDemo'),
+        ):
+            button = self._button(title, lambda checked=False, text=detail: status.setText(text), name=name)
+            button.setStyleSheet('''
+                QPushButton { text-align: left; padding: 6px 12px; border: 1px solid transparent; background: transparent; }
+                QPushButton:hover { background: #174457; }
+                QPushButton:focus { border-color: #7DD3FC; }
+            ''')
+            button.setMinimumHeight(32)
+            menu_layout.addWidget(button)
+            if name == 'guideTrayLanguageDemo':
+                menu = QMenu(button)
+                group = QActionGroup(menu)
+                group.setExclusive(True)
+                for language in ('Tiếng Việt', 'English', '繁體中文 (Traditional Chinese)'):
+                    action = menu.addAction(language)
+                    action.setCheckable(True)
+                    action.setChecked(language == 'Tiếng Việt')
+                    group.addAction(action)
+                    action.triggered.connect(lambda checked=False, text=language:
+                                             status.setText('Ví dụ: đã chọn Dịch sang → ' + text + '.'))
+                button.setMenu(menu)
+        layout.addWidget(menu_frame)
+
+        taskbar = QFrame()
+        taskbar.setObjectName('guidePopup')
+        bar = QHBoxLayout(taskbar)
+        bar.setContentsMargins(12, 5, 12, 5)
+        bar.addWidget(self._label('Khay hệ thống', color='#9DB2C8'), 1)
+        bar.addWidget(self._label('⌃', color='#D8E8F6'))
+        def toggle_menu(*_):
+            menu_frame.setVisible(not menu_frame.isVisible())
+
+        icon = self._button('', toggle_menu, name='guideTrayIconDemo')
+        icon.setIcon(asset_icon())
+        icon.setIconSize(QSize(26, 26))
+        icon.setFixedSize(42, 36)
+        icon.setStyleSheet('''
+            QPushButton { background: #174457; border: 1px solid #38BDF8; border-radius: 6px; padding: 3px; }
+            QPushButton:focus { border: 2px solid #E5F6FA; }
+        ''')
+        icon.setAccessibleName('Icon Screen Translator: nhấp chuột phải để mở menu minh họa')
+        icon.setToolTip('Nhấp chuột phải vào icon app (hoặc bấm để thử)')
+        icon.setContextMenuPolicy(Qt.CustomContextMenu)
+        icon.customContextMenuRequested.connect(toggle_menu)
+        bar.addWidget(icon)
+        bar.addWidget(self._label('  ◖  09:41', color='#D8E8F6'))
+        layout.addWidget(taskbar)
+        layout.addWidget(self._label('Nhấp chuột phải vào icon app cạnh đồng hồ.', color='#D8E8F6'))
+        layout.addWidget(status)
         return stage
 
     def _go(self, index):
@@ -267,9 +325,9 @@ class UsageGuideDialog(QDialog):
             ('Giữ bản dịch ngay bên cạnh công việc.',
              'Ghim để giữ cửa sổ, sao chép bản dịch hoặc kéo cạnh và góc cửa sổ để đổi kích thước.',
              'Kéo thanh tiêu đề để di chuyển popup đến vị trí thuận tiện.'),
-            ('Bạn đã sẵn sàng. Bắt đầu dịch thôi.',
-             'Bạn có thể đổi dịch vụ, phím tắt và xem lại hướng dẫn bất cứ lúc nào trong app.',
-             'Hướng dẫn chỉ tự hiện lần đầu. Mở lại bằng Hướng dẫn sử dụng ở sidebar hoặc khay hệ thống.'),
+            ('Đổi thiết lập ngay từ icon app.',
+             'Nhấp chuột phải vào icon Screen Translator ở góc phải thanh taskbar để mở menu và đổi nhanh thiết lập dịch.',
+             'Không thấy icon? Bấm dấu ^ cạnh đồng hồ. Mở lại hướng dẫn bằng mục Hướng dẫn sử dụng trong menu này hoặc sidebar.'),
         )
         title, description, note = pages[index]
         self._pages.setCurrentIndex(index)

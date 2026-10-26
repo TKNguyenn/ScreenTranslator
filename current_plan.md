@@ -1,5 +1,22 @@
 # CURRENT PLAN — AI SCREEN TRANSLATOR
 
+## Build 0.5.1 — 2026-10-26
+
+Đã tăng source/installer lên 0.5.1 và build phần hướng dẫn menu khay hệ thống mới. 229 tests đạt, 11 guide tests native Windows scale 150% đạt; EXE qua 10 frozen self-checks gồm hướng dẫn/OCR, 59 module khớp source, không kèm Pygments. EXE và Setup còn nguyên, hash ổn định, không có thay đổi log Trend Micro trong thời gian kiểm tra.
+
+Setup `release/AI-Screen-Translator-0.5.1-Setup.exe`: 111990119 byte, SHA256 `eb1d80c1b655a510e6888b68cd3fe0dca8b610cf2f7362a07017eaba47b9e57e`. Portable `dist/ScreenTranslator-0.5.1/ScreenTranslator.exe`: 7954116 byte, SHA256 `0dd41b563531a960d6a1f6bcafadbcc4431cfdeb07d9192fb0a469340868b87b`; giữ `_internal`. Evidence `artifacts/build-0.5.1-20261026/`. Chưa cài/update, gọi provider thật, security rescan hoặc push/release 0.5.1. Các mục bên dưới là lịch sử.
+
+## Bổ sung hướng dẫn menu khay hệ thống — 2026-10-26
+
+Mẫu `artifacts/usage-guide-tray-preview/preview.py` đã được người dùng duyệt và yêu cầu đưa vào code. Thực hiện trực tiếp trong workspace phát triển hiện tại (không có Git); không tạo checkout khác hoặc thay đổi bản phát hành.
+
+- [x] Viết và chạy test trước: 2 test mới thất bại vì chưa có icon/menu minh họa; sau tích hợp, 11 guide tests đạt.
+- [x] Tích hợp mẫu vào `app/ui/usage_guide.py`: giữ 5 trang, chuột phải/bấm icon bật tắt menu, đổi ngôn ngữ mẫu, giải thích các mục menu và dấu ^. Demo chỉ tác động widget, không đổi cấu hình thật hoặc thoát app.
+- [x] 229 unittest tests đạt; 11 guide tests đạt trên Qt offscreen và native Windows scale 150%; render native 100%/150% đạt ở 5 trang và cửa sổ 600x500, gồm wrapping/footer/cuộn đến icon. Compileall đạt. Review riêng không thấy blocker, reviewer chạy lại 11 guide tests đạt. Log full suite có exception `synthetic-failure` do test mouse callback chủ động tạo; kết quả suite OK.
+- [x] Cập nhật README, handoff và Shared Brain; đã đọc lại xác minh note sau khi ghi. Không build, tăng version hoặc publish; EXE/Setup hiện có chưa chứa phần bổ sung này.
+
+Phạm vi: `app/ui/usage_guide.py`, `tests/test_usage_guide.py`, README và tài liệu trạng thái. Các caller controller/sidebar/tray và frozen self-check giữ giao diện `UsageGuideDialog(hotkeys, parent)`/5 trang. Review tập trung: demo không ghi runtime; Thoát chỉ giải thích; lựa chọn ngôn ngữ mẫu loại trừ nhau; icon dùng được bằng bàn phím; nội dung dài cuộn mà footer vẫn dùng được.
+
 ## Trạng thái hiện tại — 2026-10-26, v0.5.0
 
 Popup hướng dẫn năm trang đã được người dùng dùng thử và chấp nhận. Giữ hành vi hiện lần đầu và mở lại từ sidebar/tray. Packaging loại Pygments (dependency tùy chọn của HTTPX CLI, app không dùng). Build sạch 0.5.0: 227 tests đạt, native frozen self-check 10/10, 59 module ứng dụng khớp source; EXE/Setup tồn tại, hash ổn định, không có cảnh báo Trend Micro mới trong thời gian theo dõi.

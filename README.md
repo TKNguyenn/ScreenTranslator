@@ -40,7 +40,7 @@ Lần đầu mở app, cửa sổ **Hướng dẫn sử dụng** tự hiện v�
 
 Bấm **Tiếp theo**, **Quay lại** hoặc dấu trang để chuyển; **Bỏ qua**, **Esc** hoặc nút đóng để kết thúc. Sau khi cửa sổ hiện thành công, app lưu cờ `onboarding_seen` trong `data/runtime_settings.json`, nên các lần mở tiếp theo không tự hiện nữa, kể cả khi đã bỏ qua. Nếu chưa có cờ (bao gồm lần đầu dùng tính năng sau khi cập nhật), hướng dẫn sẽ hiện một lần; xóa dữ liệu runtime sẽ làm hiện lại.
 
-Bạn luôn có thể mở lại bằng **Hướng dẫn sử dụng** ở cuối sidebar hoặc menu biểu tượng app trong khay hệ thống. Mở lại bắt đầu từ trang đầu và nạp phím tắt mới nhất.
+Bạn luôn có thể mở lại bằng **Hướng dẫn sử dụng** ở cuối sidebar hoặc menu biểu tượng app trong khay hệ thống. **Nhấp chuột phải vào icon Screen Translator cạnh đồng hồ** để mở menu; nếu icon bị ẩn, bấm dấu **^** trước. Menu cho phép đổi nhanh ngôn ngữ đích, kiểu dịch, API/Model và tốc độ dịch. Trang cuối hướng dẫn có icon/menu minh họa để thử; các lựa chọn ở đó không đổi cấu hình thật hay thoát app. Mở lại bắt đầu từ trang đầu và nạp phím tắt mới nhất.
 
 ### Chọn dịch vụ dịch
 
