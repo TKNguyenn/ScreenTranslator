@@ -19,6 +19,7 @@ class RequestMode(str, Enum):
     POPUP = "popup"
     REPLACE = "replace"
     REGION = "region"
+    EXPLAIN = "explain"
 
 
 @dataclass(frozen=True)

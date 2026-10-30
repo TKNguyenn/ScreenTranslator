@@ -9,8 +9,8 @@ from typing import Any, Mapping
 from dataclasses import dataclass
 
 from app.config import TranslationSection
-from app.models import TranslationProgress, TranslationRequest, TranslationResult
-from app.prompts import build_translation_instructions
+from app.models import RequestMode, TranslationProgress, TranslationRequest, TranslationResult
+from app.prompts import build_explain_instructions, build_translation_instructions
 from app.providers.base import TranslationProvider
 from app.services.cache import TranslationCache
 
@@ -177,34 +177,41 @@ class TranslationWorker:
     def _translate(self, request: TranslationRequest) -> None:
         try:
             provider = self._provider
-            instructions = build_translation_instructions(
-                source_language=request.source_language,
-                target_language=request.target_language,
-                context_preset=request.context_preset,
-                performance_mode=request.performance_mode,
-                prompt_overrides=self._prompt_overrides,
-            )
-            cache_version = self._prompt_cache_version(request, instructions)
-            cache_context = request.context_preset
-            scope = getattr(provider, "cache_scope", None)
-            if callable(scope):
-                cache_context, cache_version = scope(request, instructions)
-            key = self._cache.make_key(
-                source_text=request.source_text,
-                source_language=request.source_language,
-                target_language=request.target_language,
-                context_preset=cache_context,
-                provider_id=provider.provider_id,
-                model_id=provider.model_id,
-                prompt_version=cache_version,
-            )
-
-            cached = self._cache.get(key)
-            if cached is not None:
-                self._on_result(
-                    TranslationResult(request=request, translated_text=cached, cached=True)
+            explain = request.mode == RequestMode.EXPLAIN
+            if explain:
+                if not getattr(provider, "supports_explain", False):
+                    raise ValueError("Explain cần model AI sinh nội dung. Hãy cấu hình trong Provider & Model "
+                                     "(Chat Completions hoặc Responses); dịch máy không hỗ trợ Explain.")
+                instructions = build_explain_instructions(request.target_language)
+            else:
+                instructions = build_translation_instructions(
+                    source_language=request.source_language,
+                    target_language=request.target_language,
+                    context_preset=request.context_preset,
+                    performance_mode=request.performance_mode,
+                    prompt_overrides=self._prompt_overrides,
                 )
-                return
+                cache_version = self._prompt_cache_version(request, instructions)
+                cache_context = request.context_preset
+                scope = getattr(provider, "cache_scope", None)
+                if callable(scope):
+                    cache_context, cache_version = scope(request, instructions)
+                key = self._cache.make_key(
+                    source_text=request.source_text,
+                    source_language=request.source_language,
+                    target_language=request.target_language,
+                    context_preset=cache_context,
+                    provider_id=provider.provider_id,
+                    model_id=provider.model_id,
+                    prompt_version=cache_version,
+                )
+
+                cached = self._cache.get(key)
+                if cached is not None:
+                    self._on_result(
+                        TranslationResult(request=request, translated_text=cached, cached=True)
+                    )
+                    return
 
             global_streaming = self._config.streaming_enabled_for(request.performance_mode)
             override = getattr(provider, "streaming_override_for", None)
@@ -227,17 +234,18 @@ class TranslationWorker:
             else:
                 translated = provider.translate(request, instructions)
 
-            self._cache.put(
-                key=key,
-                source_text=request.source_text,
-                translated_text=translated,
-                source_language=request.source_language,
-                target_language=request.target_language,
-                context_preset=cache_context,
-                provider_id=provider.provider_id,
-                model_id=provider.model_id,
-                prompt_version=cache_version,
-            )
+            if not explain:
+                self._cache.put(
+                    key=key,
+                    source_text=request.source_text,
+                    translated_text=translated,
+                    source_language=request.source_language,
+                    target_language=request.target_language,
+                    context_preset=cache_context,
+                    provider_id=provider.provider_id,
+                    model_id=provider.model_id,
+                    prompt_version=cache_version,
+                )
             self._on_result(
                 TranslationResult(request=request, translated_text=translated, cached=False)
             )

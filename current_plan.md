@@ -1,5 +1,13 @@
 # CURRENT PLAN — AI SCREEN TRANSLATOR
 
+## Built0.6.0 — 2026-10-30
+
+User-selected version0.6.0 packages Explain, icon-only toolbar, Markdown display and six-page guide with provider/model instructions. Build complete:253 source tests,2 native Markdown tests and10 frozen self-checks pass;59 modules/main/assets/defaults match source. Corrected Qt image-resource fallback found by clean build testing (encoded URL fixture, transparent placeholder). Delivered dist/ScreenTranslator-0.6.0/ScreenTranslator.exe (keep _internal) and release/AI-Screen-Translator-0.6.0-Setup.exe; source/version/installer aligned. SHA256 stable after observation/self-check/delivery; AV report metadata unchanged. Full evidence/hashes in .ai/implementation_handoff.md and artifacts/build-0.6.0-20261030/result.json. No install/live API/push/publish; previous entries are history.
+
+## Explain Adaptive v1.1 — 2026-10-30 (source only)
+
+Task `explain-adaptive-v1-20261030`: implemented the supplied v1.1 spec against current 0.5.1 source. Authoritative current plan: `.ai/current_plan.md`; handoff: `.ai/implementation_handoff.md`. Added Explain through the existing Quick UX pipeline, fixed system prompt, cache bypass, safe popup and existing-language setting. Baseline 229 tests; final 247/247 tests pass, including 18 Explain cases; native Windows render 100%/150% and compileall pass. Independent review found no actionable defects. Logs/render evidence: `artifacts/explain-*`. No live-model acceptance, new binaries/version, install, sync or publishing; existing build entries below are historical.
+
 ## Build 0.5.1 — 2026-10-26
 
 Đã tăng source/installer lên 0.5.1 và build phần hướng dẫn menu khay hệ thống mới. 229 tests đạt, 11 guide tests native Windows scale 150% đạt; EXE qua 10 frozen self-checks gồm hướng dẫn/OCR, 59 module khớp source, không kèm Pygments. EXE và Setup còn nguyên, hash ổn định, không có thay đổi log Trend Micro trong thời gian kiểm tra.

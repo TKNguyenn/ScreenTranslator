@@ -7,6 +7,8 @@ from app.models import TranslationRequest
 
 
 class TranslationProvider(ABC):
+    supports_explain = False
+
     @property
     @abstractmethod
     def provider_id(self) -> str:

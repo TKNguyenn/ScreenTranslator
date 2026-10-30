@@ -11,7 +11,7 @@ from typing import Any
 import httpx
 
 from app.config import ProviderProfile
-from app.models import TranslationRequest
+from app.models import RequestMode, TranslationRequest
 from app.providers.base import TranslationProvider
 
 
@@ -51,6 +51,8 @@ class OpenAICompatibleProvider(TranslationProvider):
     third-party OpenAI-compatible gateways remain supported. V0.2.6 keeps native
     SSE streaming for Responses, Chat Completions and legacy Completions.
     """
+
+    supports_explain = True
 
     def __init__(
         self,
@@ -160,6 +162,10 @@ class OpenAICompatibleProvider(TranslationProvider):
         on_delta: Callable[[str], None] | None,
     ) -> str:
         modes = self._candidate_modes()
+        if request.mode == RequestMode.EXPLAIN:
+            modes = tuple(mode for mode in modes if mode != "completions")
+            if not modes:
+                raise ValueError("Explain cần Chat Completions hoặc Responses. Hãy cấu hình trong Provider & Model.")
         failures: list[str] = []
 
         for index, mode in enumerate(modes):
@@ -201,7 +207,7 @@ class OpenAICompatibleProvider(TranslationProvider):
                 raise
             except ProviderResponseError as exc:
                 failures.append(f"{mode}: {exc}")
-                if self._endpoint_mode == "auto" and index < len(modes) - 1:
+                if request.mode != RequestMode.EXPLAIN and self._endpoint_mode == "auto" and index < len(modes) - 1:
                     logger.info(
                         "Provider profile %s returned an incompatible %s response; trying fallback",
                         self._profile_name,
@@ -428,11 +434,13 @@ class OpenAICompatibleProvider(TranslationProvider):
         instructions: str,
         streaming: bool = False,
     ) -> dict[str, Any]:
+        user_text = (json.dumps({"selected_text": request.source_text}, ensure_ascii=False)
+                     if request.mode == RequestMode.EXPLAIN else request.source_text)
         if mode == "responses":
             payload: dict[str, Any] = {
                 "model": self._model,
                 "instructions": instructions,
-                "input": request.source_text,
+                "input": user_text,
             }
             if self._profile.max_output_tokens is not None:
                 payload["max_output_tokens"] = self._profile.max_output_tokens
@@ -441,7 +449,7 @@ class OpenAICompatibleProvider(TranslationProvider):
                 "model": self._model,
                 "messages": [
                     {"role": "system", "content": instructions},
-                    {"role": "user", "content": request.source_text},
+                    {"role": "user", "content": user_text},
                 ],
             }
             if self._profile.max_output_tokens is not None:

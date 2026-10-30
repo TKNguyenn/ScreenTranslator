@@ -753,6 +753,10 @@ class MainWindow(QMainWindow):
         language_widget = QWidget()
         language_widget.setLayout(languages)
         form.addRow("Nút ngôn ngữ:", language_widget)
+        self._quick_explain_language = QComboBox()
+        for code, label in (("vi", "Tiếng Việt"), ("en", "English"), ("zh-Hant", "繁體中文")):
+            self._quick_explain_language.addItem(label, code)
+        form.addRow("Ngôn ngữ Explain:", self._quick_explain_language)
         self._quick_dismiss = QCheckBox("Đóng khi click ngoài, trừ khi đã ghim")
         form.addRow("Popup:", self._quick_dismiss)
         self._quick_max_chars = QSpinBox()
@@ -880,6 +884,8 @@ class MainWindow(QMainWindow):
         self._quick_timeout.setValue(config.toolbar_timeout_ms // 1000)
         self._quick_dismiss.setChecked(config.dismiss_popup_on_blur)
         self._quick_max_chars.setValue(config.max_selection_chars)
+        self._quick_explain_language.setCurrentIndex(
+            self._quick_explain_language.findData(config.explain_output_language))
         for code, checkbox in self._quick_language_boxes.items():
             checkbox.setChecked(code in config.languages)
         self._quick_status.setText("Thiết lập hiện tại: " + ("Toolbar ON" if config.auto_show_toolbar else "Toolbar OFF"))
@@ -891,6 +897,7 @@ class MainWindow(QMainWindow):
             "toolbar_timeout_ms": self._quick_timeout.value() * 1000,
             "dismiss_popup_on_blur": self._quick_dismiss.isChecked(),
             "max_selection_chars": self._quick_max_chars.value(),
+            "explain_output_language": self._quick_explain_language.currentData(),
             "languages": [code for code, box in self._quick_language_boxes.items() if box.isChecked()],
         }
         try:

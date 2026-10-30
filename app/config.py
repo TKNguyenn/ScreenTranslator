@@ -218,6 +218,7 @@ class QuickUxSection:
     dismiss_popup_on_blur: bool = True
     toolbar_timeout_ms: int = 8000
     max_selection_chars: int = 6000
+    explain_output_language: str = "vi"
 
     def as_json(self) -> dict[str, Any]:
         return {
@@ -227,6 +228,7 @@ class QuickUxSection:
             "dismiss_popup_on_blur": self.dismiss_popup_on_blur,
             "toolbar_timeout_ms": self.toolbar_timeout_ms,
             "max_selection_chars": self.max_selection_chars,
+            "explain_output_language": self.explain_output_language,
         }
 
 
@@ -235,6 +237,9 @@ def parse_quick_ux_section(raw: Any) -> QuickUxSection:
     if not isinstance(raw, dict):
         raise ValueError("quick_ux must be an object")
     allowed = {"vi", "en", "zh-Hant"}
+    explain_language = raw.get("explain_output_language", "vi")
+    if not isinstance(explain_language, str) or explain_language not in allowed:
+        raise ValueError("quick_ux.explain_output_language must be vi, en, or zh-Hant")
     raw_languages = raw.get("languages", ["vi", "en", "zh-Hant"])
     if not isinstance(raw_languages, (tuple, list)):
         raise ValueError("quick_ux.languages must be an array")
@@ -259,6 +264,7 @@ def parse_quick_ux_section(raw: Any) -> QuickUxSection:
         dismiss_popup_on_blur=dismiss,
         toolbar_timeout_ms=bounded_int("toolbar_timeout_ms", 8000, 2000, 20000),
         max_selection_chars=bounded_int("max_selection_chars", 6000, 200, 20000),
+        explain_output_language=explain_language,
     )
 
 

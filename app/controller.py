@@ -259,6 +259,7 @@ class AppController(QObject):
         self._quick_toolbar = QuickToolbar(config.quick_ux)
         self._quick_popup = QuickTranslationPopup(config.quick_ux)
         self._quick_toolbar.language_requested.connect(self._translate_quick_selection)
+        self._quick_toolbar.explain_requested.connect(self._explain_quick_selection)
         self._quick_popup.replace_requested.connect(self._on_quick_popup_replace)
         self._quick_popup.closed.connect(self._on_quick_popup_closed)
         self._region_selector = RegionSelectorOverlay(config.ui)
@@ -865,6 +866,11 @@ class AppController(QObject):
     def _translate_quick_selection(self, language: str) -> None:
         self._begin_quick_translation(language, mode=RequestMode.POPUP)
 
+    @Slot()
+    def _explain_quick_selection(self) -> None:
+        self._begin_quick_translation(self._config.quick_ux.explain_output_language,
+                                      mode=RequestMode.EXPLAIN)
+
     def _begin_quick_translation(self, language: str, *, mode: RequestMode) -> None:
         self._cancel_quick_replacements()
         snapshot = self._quick_snapshot
@@ -883,7 +889,8 @@ class AppController(QObject):
         self._pending[job_id] = PendingJob(mode=mode, quick=True, quick_snapshot=snapshot)
         self._quick_translation_ids.add(job_id)
         self._quick_visible_job_id = job_id
-        self._quick_popup_snapshot = snapshot
+        # Explain must never leave a source that the Replace handler can use.
+        self._quick_popup_snapshot = None if mode == RequestMode.EXPLAIN else snapshot
         anchor = self._quick_anchor
         self._quick_toolbar.hide()
         google = self._profile is not None and self._profile.type in {"google_translate_web", "google_cloud_translate", "microsoft_translator"}
@@ -892,7 +899,8 @@ class AppController(QObject):
             "Dịch trực tiếp" if google else self._context_preset,
             "Không dùng prompt / tốc độ AI" if google else self._performance_mode,
             self._profile_name, getattr(self._profile, "model", "unavailable"), anchor,
-            replace_allowed=snapshot.replace_allowed,
+            replace_allowed=snapshot.replace_allowed and mode != RequestMode.EXPLAIN,
+            mode=mode,
         )
         request = TranslationRequest(
             job_id=job_id,

@@ -11,7 +11,7 @@ Giao diện Dark Ocean với nền xanh biển sâu, điểm nhấn Cyan–Emera
 | Tính năng | Cách sử dụng |
 | --- | --- |
 | **Dịch văn bản được chọn** | Bôi đen nội dung rồi dùng toolbar hoặc phím tắt để xem bản dịch trong popup. |
-| **Quick Toolbar** | Chọn nhanh **VI / EN / 繁** để dịch sang tiếng Việt, tiếng Anh hoặc tiếng Trung phồn thể. |
+| **Quick Toolbar** | Chọn **VI / EN / 繁** để dịch, hoặc **💡 Explain** để giải thích nội dung bằng AI. |
 | **Dịch vùng màn hình bằng OCR** | Khoanh vùng có chữ trong hình ảnh hoặc nội dung không thể bôi đen; app nhận diện chữ rồi dịch. |
 | **Dịch và thay thế** | Thay văn bản đang chọn trong ô nhập bằng bản dịch, không tự nhấn Enter hay gửi tin nhắn. |
 | **Popup linh hoạt** | Kéo để di chuyển, kéo cạnh hoặc góc để đổi kích thước; ghim cửa sổ, xem văn bản gốc và sao chép kết quả. |
@@ -36,7 +36,7 @@ Bản cài đặt đã kèm môi trường chạy và OCR, không cần cài Pyt
 
 ### Hướng dẫn bằng hình minh họa
 
-Lần đầu mở app, cửa sổ **Hướng dẫn sử dụng** tự hiện với năm trang: dịch bôi đen, dịch chữ trong ảnh, dịch và thay thế, sử dụng popup, và thiết lập/trợ giúp. Mỗi trang có giao diện minh họa cùng thao tác thử bằng văn bản mẫu; không gửi yêu cầu dịch. Nút **Sao chép** sao chép bản dịch mẫu vào clipboard. Phím tắt trong hướng dẫn lấy từ cấu hình hiện tại.
+Lần đầu mở app, cửa sổ **Hướng dẫn sử dụng** tự hiện với sáu trang: dịch bôi đen, dịch chữ trong ảnh, dịch và thay thế, sử dụng popup, thêm provider/model, và menu khay hệ thống/trợ giúp. Trang đầu có nút **💡** để thử Explain cùng VI/EN/繁; trên toolbar thật, nút Explain cũng chỉ hiện bóng đèn, rê chuột để xem tên. Trang provider/model hướng dẫn **+ Thêm → Base URL/API key/Endpoint → + Thêm model → Model đang dùng → Test → Provider đang áp dụng → Lưu & áp dụng**, kèm nút thử thêm model mẫu. Mỗi trang có giao diện minh họa cùng thao tác thử bằng dữ liệu mẫu; không gửi yêu cầu dịch hay AI hoặc sửa provider/model thật. Nút **Sao chép** sao chép bản dịch mẫu vào clipboard. Phím tắt trong hướng dẫn lấy từ cấu hình hiện tại.
 
 Bấm **Tiếp theo**, **Quay lại** hoặc dấu trang để chuyển; **Bỏ qua**, **Esc** hoặc nút đóng để kết thúc. Sau khi cửa sổ hiện thành công, app lưu cờ `onboarding_seen` trong `data/runtime_settings.json`, nên các lần mở tiếp theo không tự hiện nữa, kể cả khi đã bỏ qua. Nếu chưa có cờ (bao gồm lần đầu dùng tính năng sau khi cập nhật), hướng dẫn sẽ hiện một lần; xóa dữ liệu runtime sẽ làm hiện lại.
 
@@ -73,6 +73,8 @@ Thanh hạn mức không hiện số tiền, bắt đầu từ mốc ước lư�
 3. Đọc kết quả trong popup; kéo thanh tiêu đề để di chuyển, kéo cạnh hoặc góc dưới phải để đổi kích thước.
 
 Toolbar phụ thuộc vào khả năng cung cấp vùng chọn qua Windows UI Automation của ứng dụng đang dùng. Nếu toolbar không xuất hiện, thử **Alt+T**; với nội dung dạng ảnh hoặc không thể sao chép, dùng **Alt+S** để khoanh vùng OCR.
+
+Bấm **💡 Explain** sau khi bôi đen để giải thích từ/cụm từ, thuật ngữ, code/PLC, log hoặc đoạn văn. Model tự chọn độ sâu trong cùng một lượt trả lời; mặc định dùng tiếng Việt, có thể đổi sang English hoặc 繁體中文 trong **Quick Toolbar → Ngôn ngữ Explain**, độc lập với VI/EN/繁. Explain dùng provider/model AI đang chọn (Chat Completions hoặc Responses, gồm Trial); Google/Microsoft Translator và endpoint Completions cũ sẽ báo cần cấu hình AI. Popup Explain chỉ có **Sao chép / Ghim / Đóng**, không thay thế văn bản nguồn và không đọc/ghi cache dịch. Prompt cố định `explain-v1` không dùng các tùy chỉnh prompt dịch.
 
 Các phím tắt mặc định:
 

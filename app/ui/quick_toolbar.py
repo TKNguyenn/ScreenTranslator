@@ -29,6 +29,7 @@ def clamp_floating_position(
 
 class QuickToolbar(FloatingSurface):
     language_requested = Signal(str)
+    explain_requested = Signal()
 
     def __init__(self, config: QuickUxSection) -> None:
         super().__init__()
@@ -63,6 +64,13 @@ class QuickToolbar(FloatingSurface):
             button.clicked.connect(lambda checked=False, lang=code: self.language_requested.emit(lang))
             layout.addWidget(button)
             self._buttons[code] = button
+        self._explain = QPushButton("💡", self)
+        self._explain.setAccessibleName("Explain — Giải thích")
+        self._explain.setFocusPolicy(Qt.NoFocus)
+        self._explain.setCursor(Qt.PointingHandCursor)
+        self._explain.setToolTip("Explain — Giải thích nội dung được chọn bằng model AI hiện tại")
+        self._explain.clicked.connect(self.explain_requested.emit)
+        layout.addWidget(self._explain)
         self.setStyleSheet("""
             QLabel#toolbarBadge { color: #72e1d5; font-size: 12px; font-weight: 700; padding: 0 6px; }
             QFrame#toolbarDivider { background: #28718a; border: none; }

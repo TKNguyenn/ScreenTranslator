@@ -152,6 +152,9 @@ class UsageGuideTests(unittest.TestCase):
         guide.findChild(QPushButton, 'guideCopyDemo').click()
         self.assertIn('Vui lòng', self.app.clipboard().text())
         guide._next.click()
+        self.assertIn('provider', guide._title.text().lower())
+        self.assertEqual(guide._next.text(), 'Tiếp theo →')
+        guide._next.click()
         self.assertEqual(guide._next.text(), 'Bắt đầu sử dụng')
         guide._next.click()
         self.assertFalse(guide.isVisible())
@@ -161,6 +164,54 @@ class UsageGuideTests(unittest.TestCase):
         self.assertEqual(guide._pages.currentIndex(), 1)
         QTest.keyClick(guide, Qt.Key_Escape)
         self.assertFalse(guide.isVisible())
+
+    def test_explain_demo_is_offline_and_language_buttons_restore_translation(self):
+        self.controller._show_usage_guide()
+        guide = self.controller._usage_guide
+        button = guide.findChild(QPushButton, 'guideExplainDemo')
+        self.assertIsNotNone(button)
+        self.assertEqual(button.text(), '💡')
+        self.assertIn('Explain', button.accessibleName())
+        original_settings = self.store.load()
+        original_clipboard = self.app.clipboard().text()
+        with patch('app.workers.translation_worker.TranslationWorker.submit',
+                   side_effect=AssertionError('guide must stay offline')):
+            button.click()
+        result = guide.findChild(QLabel, 'guideTranslation')
+        self.assertIn('kiểm tra bản vẽ', result.text())
+        self.assertNotEqual(result.text(), 'Vui lòng kiểm tra bản vẽ trước khi sản xuất.')
+        self.assertIn('thay thế', guide._note.text())
+        guide.findChild(QPushButton, 'guideLanguageVi').click()
+        self.assertEqual(result.text(), 'Vui lòng kiểm tra bản vẽ trước khi sản xuất.')
+        self.assertEqual(self.store.load(), original_settings)
+        self.assertEqual(self.app.clipboard().text(), original_clipboard)
+        self.assertEqual(guide._pages.count(), 6)
+
+    def test_provider_model_guide_demo_is_offline_and_preserves_configuration(self):
+        self.controller._show_usage_guide()
+        guide = self.controller._usage_guide
+        guide._go(4)
+        self.assertIn('provider', guide._title.text().lower())
+        self.assertEqual(guide._counter.text(), '5 / 6')
+        button = guide.findChild(QPushButton, 'guideAddModelDemo')
+        self.assertIsNotNone(button)
+        before_profiles = {name: dict(data) for name, data in self.window._working_profiles.items()}
+        before_runtime = self.store.load()
+        with patch('app.ui.main_window.MainWindow._add_model',
+                   side_effect=AssertionError('guide must not edit real models')), \
+             patch('app.workers.translation_worker.TranslationWorker.submit',
+                   side_effect=AssertionError('guide must not call a provider')):
+            button.click()
+        status = guide.findChild(QLabel, 'guideProviderModelDemo')
+        self.assertIn('your-model-id', status.text())
+        self.assertIn('mẫu', status.text())
+        self.assertEqual(self.window._working_profiles, before_profiles)
+        self.assertEqual(self.store.load(), before_runtime)
+        guide._next.click()
+        self.assertEqual(guide._counter.text(), '6 / 6')
+        self.assertEqual(guide._next.text(), 'Bắt đầu sử dụng')
+        guide._previous.click()
+        self.assertEqual(guide._counter.text(), '5 / 6')
 
     def test_skip_closes_and_small_screen_content_is_scrollable(self):
         self.controller._show_usage_guide()
@@ -177,7 +228,7 @@ class UsageGuideTests(unittest.TestCase):
     def test_tray_icon_context_menu_and_keyboard_toggle_demo(self):
         self.controller._show_usage_guide()
         guide = self.controller._usage_guide
-        guide._go(4)
+        guide._go(5)
         icon = guide.findChild(QPushButton, 'guideTrayIconDemo')
         self.assertIsNotNone(icon)
         menu = guide.findChild(QFrame, 'guideTrayMenuDemo')
@@ -191,12 +242,12 @@ class UsageGuideTests(unittest.TestCase):
         icon.setFocus()
         QTest.keyClick(icon, Qt.Key_Space)
         self.assertTrue(menu.isVisible())
-        self.assertEqual(guide._pages.count(), 5)
+        self.assertEqual(guide._pages.count(), 6)
 
     def test_tray_menu_samples_preserve_runtime_and_do_not_quit(self):
         self.controller._show_usage_guide()
         guide = self.controller._usage_guide
-        guide._go(4)
+        guide._go(5)
         settings = self.store.load()
         language = guide.findChild(QPushButton, 'guideTrayLanguageDemo')
         self.assertIsNotNone(language)

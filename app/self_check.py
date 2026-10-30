@@ -57,12 +57,12 @@ def run_self_check(report_path: Path) -> int:
         from app.ui.usage_guide import UsageGuideDialog
         assert window.findChild(QPushButton, 'usageGuideButton') is not None
         guide = UsageGuideDialog(config.hotkeys, window)
-        for index in range(5):
+        for index in range(guide._pages.count()):
             guide._go(index)
-            assert guide._counter.text() == f'{index + 1} / 5'
+            assert guide._counter.text() == f'{index + 1} / {guide._pages.count()}'
             assert not guide.grab().isNull()
         guide.close()
-        report["checks"].append("Five-page offline usage guide and Help entry (no marker write or API)")
+        report["checks"].append("Six-page offline usage guide and Help entry (no marker write or API)")
         toolbar = QuickToolbar(config.quick_ux)
         popup = QuickTranslationPopup(config.quick_ux)
         popup.resize(550, 420)

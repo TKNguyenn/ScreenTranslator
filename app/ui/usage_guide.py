@@ -63,7 +63,7 @@ class UsageGuideDialog(QDialog):
         body.setSpacing(12)
         heading = QHBoxLayout()
         heading.addWidget(self._label('Hướng dẫn nhanh', color='#A9B9CC'), 1)
-        self._counter = self._label('1 / 5', color='#86D9F7')
+        self._counter = self._label('', color='#86D9F7')
         heading.addWidget(self._counter)
         body.addLayout(heading)
         self._title = self._label('', name='guideTitle')
@@ -72,7 +72,7 @@ class UsageGuideDialog(QDialog):
         body.addWidget(self._description)
         self._pages = QStackedWidget()
         for builder in (self._selection_page, self._ocr_page, self._replace_page,
-                        self._popup_page, self._help_page):
+                        self._popup_page, self._provider_page, self._help_page):
             self._pages.addWidget(builder())
         body.addWidget(self._pages)
         self._note = self._label('', name='guideNote')
@@ -89,7 +89,8 @@ class UsageGuideDialog(QDialog):
         footer.addStretch()
         self._dots = []
         for index, label in enumerate(('Dịch bôi đen', 'Dịch chữ trong ảnh', 'Dịch và thay thế',
-                                        'Sử dụng popup', 'Menu khay hệ thống và trợ giúp')):
+                                        'Sử dụng popup', 'Thêm provider và model',
+                                        'Menu khay hệ thống và trợ giúp')):
             dot = self._button('●', lambda checked=False, i=index: self._go(i))
             dot.setFixedSize(24, 30)
             dot.setStyleSheet('padding: 0; border: none; background: transparent;')
@@ -154,7 +155,7 @@ class UsageGuideDialog(QDialog):
         frame.setObjectName('guidePopup')
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 12, 16, 14)
-        layout.addWidget(self._label('Screen Translator · Kết quả dịch', color='#9FB8CD'))
+        layout.addWidget(self._label('Screen Translator · Kết quả', color='#9FB8CD'))
         result = self._label(text, name=name)
         layout.addWidget(result)
         return frame, result
@@ -173,10 +174,17 @@ class UsageGuideDialog(QDialog):
                                   name='guideLanguage' + suffix)
             button.setAccessibleName('Dịch thử sang ' + text)
             toolbar.addWidget(button)
+        explain = self._button('💡', lambda: result.setText(
+            'Giải thích: Câu này yêu cầu kiểm tra bản vẽ trước khi bắt đầu sản xuất, '
+            'để xác nhận các chi tiết cần thực hiện. Đây là bước kiểm tra trước khi làm.'),
+            name='guideExplainDemo')
+        explain.setToolTip('Explain — Thử giải thích nội dung được chọn')
+        explain.setAccessibleName('Explain — Thử giải thích')
+        toolbar.addWidget(explain)
         toolbar.addStretch()
         layout.addLayout(toolbar)
         layout.addWidget(bubble)
-        layout.addWidget(self._label('① Bôi đen văn bản       ② Chọn ngôn ngữ trên toolbar', color='#BBD5E6'))
+        layout.addWidget(self._label('① Bôi đen văn bản       ② Chọn VI / EN / 繁 để dịch, hoặc 💡 để giải thích', color='#BBD5E6'))
         return stage
 
     def _ocr_page(self):
@@ -235,6 +243,32 @@ class UsageGuideDialog(QDialog):
         bubble.layout().addWidget(self._label(SOURCE, color='#A1B7CA'))
         layout.addWidget(bubble)
         layout.addWidget(self._label('① Ghim cửa sổ    ② Sao chép    ③ Kéo góc để đổi cỡ', color='#BBD5E6'))
+        layout.addWidget(status)
+        return stage
+
+    def _provider_page(self):
+        stage, layout = self._stage()
+        layout.setSpacing(10)
+        for title, detail in (
+            ('① Thêm provider',
+             'Bấm + Thêm dưới danh sách bên trái, đặt tên rồi chọn provider vừa tạo. '
+             'Trong Kết nối API, chọn Type: openai_compatible; nhập Base URL và API key của dịch vụ. '
+             'Endpoint chọn auto hoặc loại dịch vụ hỗ trợ; Explain cần Responses hoặc Chat Completions.'),
+            ('② Thêm và chọn model',
+             'Trong Models, bấm + Thêm model rồi nhập đúng Model ID từ nhà cung cấp. '
+             'Chọn model đó ở Model đang dùng.'),
+            ('③ Kiểm tra, lưu và áp dụng',
+             'Bấm Test provider / model hiện tại để kiểm tra kết nối (có thể phát sinh phí API). '
+             'Chọn đúng Provider đang áp dụng, rồi bấm Lưu & áp dụng.'),
+        ):
+            layout.addWidget(self._label(title, color='#86D9F7'))
+            layout.addWidget(self._label(detail, color='#D8E8F6'))
+        status = self._label('Minh họa: chưa thêm model.', name='guideProviderModelDemo', color='#A9B9CC')
+        demo = self._button('+ Thêm model (mẫu)', lambda: status.setText(
+            'Model mẫu: your-model-id → chọn ở Model đang dùng → Lưu & áp dụng. '
+            'Trong app thật, dùng Model ID của dịch vụ bạn đăng ký.'), name='guideAddModelDemo')
+        demo.setToolTip('Chỉ minh họa, không thay đổi provider/model thật hoặc gọi API')
+        layout.addWidget(demo, alignment=Qt.AlignLeft)
         layout.addWidget(status)
         return stage
 
@@ -310,12 +344,14 @@ class UsageGuideDialog(QDialog):
         return stage
 
     def _go(self, index):
-        index = max(0, min(4, index))
+        last_page = self._pages.count() - 1
+        index = max(0, min(last_page, index))
         hotkeys = self._hotkeys
         pages = (
-            ('Bôi đen. Chọn ngôn ngữ. Đọc bản dịch.',
-             'Bôi đen đoạn văn bản, rồi bấm VI, EN hoặc 繁 trên thanh công cụ xuất hiện bên cạnh.',
-             f'Toolbar không xuất hiện? Bôi đen rồi nhấn {hotkeys.translate_selection.title()} để dịch.'),
+            ('Bôi đen để dịch hoặc giải thích.',
+             'Bấm VI, EN hoặc 繁 để dịch; bấm 💡 Explain để hiểu ý nghĩa của từ, thuật ngữ, code hoặc lỗi. Thử các nút mẫu bên dưới.',
+             'Explain cần model AI trong Provider & Model; mặc định trả lời tiếng Việt. Popup chỉ có Sao chép / Ghim / Đóng, không thay thế văn bản. '
+             f'Toolbar không xuất hiện? Nhấn {hotkeys.translate_selection.title()} để dịch.'),
             ('Có chữ trong ảnh? Khoanh vùng để dịch.',
              f'Nhấn {hotkeys.region_translate.title()}, kéo chọn vùng chứa chữ rồi thả chuột. App sẽ nhận diện chữ và mở bản dịch.',
              'Dùng cho ảnh, bản vẽ và nội dung không thể bôi đen hoặc sao chép.'),
@@ -325,6 +361,11 @@ class UsageGuideDialog(QDialog):
             ('Giữ bản dịch ngay bên cạnh công việc.',
              'Ghim để giữ cửa sổ, sao chép bản dịch hoặc kéo cạnh và góc cửa sổ để đổi kích thước.',
              'Kéo thanh tiêu đề để di chuyển popup đến vị trí thuận tiện.'),
+            ('Thêm provider và model của bạn.',
+             'Mở Provider & Model ở sidebar. Làm theo ba bước dưới đây để kết nối dịch vụ AI của bạn.',
+             'Các nút + Trial / + Google Free / + Google Cloud / + Microsoft thêm cấu hình có sẵn. '
+             'Trial có danh sách model cố định; Google/Microsoft là dịch máy, không hỗ trợ Explain. '
+             'Nút mẫu ở trên không gọi API hoặc lưu cấu hình thật.'),
             ('Đổi thiết lập ngay từ icon app.',
              'Nhấp chuột phải vào icon Screen Translator ở góc phải thanh taskbar để mở menu và đổi nhanh thiết lập dịch.',
              'Không thấy icon? Bấm dấu ^ cạnh đồng hồ. Mở lại hướng dẫn bằng mục Hướng dẫn sử dụng trong menu này hoặc sidebar.'),
@@ -334,16 +375,16 @@ class UsageGuideDialog(QDialog):
         self._title.setText(title)
         self._description.setText(description)
         self._note.setText('ⓘ  ' + note)
-        self._counter.setText(f'{index + 1} / 5')
+        self._counter.setText(f'{index + 1} / {self._pages.count()}')
         self._previous.setEnabled(index > 0)
-        self._next.setText('Bắt đầu sử dụng' if index == 4 else 'Tiếp theo →')
+        self._next.setText('Bắt đầu sử dụng' if index == last_page else 'Tiếp theo →')
         for i, dot in enumerate(self._dots):
             dot.setStyleSheet('padding: 0; border: none; background: transparent; color: ' +
                              ('#38BDF8;' if i == index else '#52647B;'))
         self._scroll.verticalScrollBar().setValue(0)
 
     def _advance(self):
-        if self._pages.currentIndex() == 4:
+        if self._pages.currentIndex() == self._pages.count() - 1:
             self.accept()
         else:
             self._go(self._pages.currentIndex() + 1)

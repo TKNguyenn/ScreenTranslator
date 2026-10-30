@@ -214,9 +214,12 @@ class QuickUxWidgetTests(unittest.TestCase):
         self.toolbar._buttons["en"].click()
         self.assertEqual(targets, ["en"])
 
-    def test_toolbar_only_has_language_buttons(self):
+    def test_toolbar_has_language_buttons_then_explain(self):
         self.assertEqual(self.toolbar.findChildren(QPushButton),
-                         list(self.toolbar._buttons.values()))
+                         [*self.toolbar._buttons.values(), self.toolbar._explain])
+        self.assertEqual(self.toolbar._explain.text(), '💡')
+        self.assertIn('Explain', self.toolbar._explain.accessibleName())
+        self.assertIn('Giải thích', self.toolbar._explain.toolTip())
 
     def test_toolbar_auto_hide_after_pointer_leaves(self):
         self.toolbar.show_at(QPoint(20, 20))

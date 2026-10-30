@@ -3,13 +3,15 @@ from __future__ import annotations
 import math
 
 from PySide6.QtCore import QElapsedTimer, QPoint, QPointF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QFontMetricsF, QGuiApplication, QPainter, QPalette, QPen, QTextCursor
+from PySide6.QtGui import QColor, QFontMetricsF, QGuiApplication, QImage, QPainter, QPalette, QPen, QTextCursor, QTextDocument
 from PySide6.QtWidgets import (
     QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QSizeGrip, QSplitter,
-    QVBoxLayout, QWidget,
+    QTextEdit, QVBoxLayout, QWidget,
 )
 
 from app.config import QuickUxSection
+from app.models import RequestMode
+from app.prompts import EXPLAIN_PROMPT_VERSION
 from app.ui.quick_toolbar import clamp_floating_position
 from app.ui.floating_surface import FloatingSurface
 from app.ui.theme import asset_icon
@@ -18,18 +20,29 @@ from app.ui.theme import asset_icon
 TARGET_LABELS = {"vi": "Tiếng Việt", "en": "English", "zh-Hant": "繁體中文"}
 
 
-class WaveTranslationOutput(QPlainTextEdit):
+class _OutputDocument(QTextDocument):
+    def loadResource(self, resource_type, name):
+        # A non-null placeholder prevents Qt's image handler falling back to disk.
+        if resource_type == QTextDocument.ImageResource:
+            image = QImage(1, 1, QImage.Format_ARGB32)
+            image.fill(Qt.transparent)
+            return image
+        return None
+
+
+class WaveTranslationOutput(QTextEdit):
     def __init__(self) -> None:
         super().__init__()
+        self.setDocument(_OutputDocument(self))
         self._loading = False
         self._wave_clock = QElapsedTimer()
         self._wave_timer = QTimer(self)
         self._wave_timer.setInterval(33)
         self._wave_timer.timeout.connect(self.viewport().update)
 
-    def start_loading(self) -> None:
+    def start_loading(self, text: str = "Đang dịch...") -> None:
         # Keep real text available to accessibility while painting the animated glyphs.
-        self.setPlainText("Đang dịch...")
+        self.setPlainText(text)
         self._loading = True
         self._wave_clock.start()
         if self.isVisible():
@@ -40,6 +53,11 @@ class WaveTranslationOutput(QPlainTextEdit):
         self._loading = False
         self._wave_timer.stop()
         super().setPlainText(text)
+
+    def setMarkdown(self, text: str) -> None:
+        self._loading = False
+        self._wave_timer.stop()
+        self.document().setMarkdown(text, QTextDocument.MarkdownNoHTML)
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -92,6 +110,7 @@ class QuickTranslationPopup(FloatingSurface):
         self._pending_job: str | None = None
         self._anchor = QPoint(0, 0)
         self._replace_allowed = False
+        self._mode = RequestMode.POPUP
         self._pinned = False
         self.setObjectName("quickTranslationPopup")
         self.setWindowFlags(
@@ -221,7 +240,7 @@ class QuickTranslationPopup(FloatingSurface):
           QWidget#quickTranslationPopup QPushButton#popupCopy:disabled { background: #1d2b40; color: #8b9db9; border-color: #30425c; }
           QWidget#quickTranslationPopup QPushButton#popupClose { padding: 0; font-size: 22px; background: transparent; border: none; }
           QWidget#quickTranslationPopup QPushButton#popupClose:hover { background: #593342; color: #ffbdc9; }
-          QWidget#quickTranslationPopup QPlainTextEdit { background: #0B1A2C;
+          QWidget#quickTranslationPopup QPlainTextEdit, QWidget#quickTranslationPopup QTextEdit { background: #0B1A2C;
             color: #f3f6ff; border: 1px solid #285368; border-radius: 8px;
             padding: 10px; font-size: 14px; selection-background-color: #386381;
             selection-color: #ffffff; }
@@ -271,20 +290,26 @@ class QuickTranslationPopup(FloatingSurface):
 
     def start(self, job_id: str, original: str, target: str, style: str,
               speed: str, provider_name: str, model: str, anchor: QPoint,
-              replace_allowed: bool) -> None:
+              replace_allowed: bool, *, mode: RequestMode = RequestMode.POPUP) -> None:
         self._pending_job = job_id
         self._translation = ""
         self._stream_buffer = ""
         self._flush_timer.stop()
         self._original = original
-        self._replace_allowed = replace_allowed
+        self._mode = mode
+        explain = mode == RequestMode.EXPLAIN
+        self._replace_allowed = replace_allowed and not explain
+        self._replace.setVisible(not explain)
+        self._show_original.setVisible(not explain)
         self._anchor = QPoint(anchor)
-        self._headline.setText(f"Bản dịch · {TARGET_LABELS.get(target, target)}")
-        self._meta.setText(f"{provider_name} / {model}\n{style} · {speed}")
-        self._output.start_loading()
+        title = "Giải thích" if explain else "Bản dịch"
+        self.setWindowTitle(f"{title} — AI Screen Translator")
+        self._headline.setText(f"{title} · {TARGET_LABELS.get(target, target)}")
+        self._meta.setText(f"{provider_name} / {model}\n{EXPLAIN_PROMPT_VERSION if explain else style} · {speed}")
+        self._output.start_loading("Đang giải thích..." if explain else "Đang dịch...")
         self._original_view.setPlainText(original)
-        self._original_view.setVisible(self._show_original.isChecked())
-        self._feedback.setText("Đang dịch…")
+        self._original_view.setVisible(not explain and self._show_original.isChecked())
+        self._feedback.setText("Đang giải thích…" if explain else "Đang dịch…")
         self._copy.setEnabled(False)
         self._replace.setEnabled(False)
         self._show_near(anchor)
@@ -305,14 +330,17 @@ class QuickTranslationPopup(FloatingSurface):
         follow = scrollbar.value() >= scrollbar.maximum() - 4
         scroll_position = scrollbar.value()
         self._translation += self._stream_buffer
-        cursor = QTextCursor(self._output.document())
-        cursor.movePosition(QTextCursor.End)
-        cursor.insertText(self._stream_buffer)
+        if self._mode == RequestMode.EXPLAIN:
+            self._output.setMarkdown(self._translation)
+        else:
+            cursor = QTextCursor(self._output.document())
+            cursor.movePosition(QTextCursor.End)
+            cursor.insertText(self._stream_buffer)
         if follow:
             scrollbar.setValue(scrollbar.maximum())
         else:
             scrollbar.setValue(scroll_position)
-        self._feedback.setText("Đang nhận bản dịch…")
+        self._feedback.setText("Đang nhận giải thích…" if self._mode == RequestMode.EXPLAIN else "Đang nhận bản dịch…")
         self._stream_buffer = ""
 
     def finish(self, job_id: str, translated: str, cached: bool) -> None:
@@ -321,8 +349,12 @@ class QuickTranslationPopup(FloatingSurface):
         self._flush_timer.stop()
         self._stream_buffer = ""
         self._translation = translated
-        self._output.setPlainText(translated)
-        self._feedback.setText("Từ cache" if cached else "Dịch hoàn tất")
+        if self._mode == RequestMode.EXPLAIN:
+            self._output.setMarkdown(translated)
+        else:
+            self._output.setPlainText(translated)
+        self._feedback.setText("Giải thích hoàn tất" if self._mode == RequestMode.EXPLAIN else
+                               "Từ cache" if cached else "Dịch hoàn tất")
         self._copy.setEnabled(bool(translated))
         self._replace.setEnabled(bool(translated) and self._replace_allowed)
 
@@ -332,8 +364,10 @@ class QuickTranslationPopup(FloatingSurface):
         self._flush_timer.stop()
         self._stream_buffer = ""
         self._translation = ""
-        self._output.setPlainText("Không thể dịch. " + message)
-        self._feedback.setText("Có thể dùng Alt+T để thử lại.")
+        explain = self._mode == RequestMode.EXPLAIN
+        self._output.setPlainText(("Không thể giải thích. " if explain else "Không thể dịch. ") + message)
+        self._feedback.setText("Chọn lại nội dung và bấm Explain để thử lại." if explain else
+                               "Có thể dùng Alt+T để thử lại.")
         self._copy.setEnabled(False)
         self._replace.setEnabled(False)
 
@@ -344,8 +378,9 @@ class QuickTranslationPopup(FloatingSurface):
     def copy_translation(self) -> None:
         if not self._translation:
             return
-        QGuiApplication.clipboard().setText(self._translation)
-        self._feedback.setText("Đã sao chép bản dịch")
+        text = self._output.toPlainText() if self._mode == RequestMode.EXPLAIN else self._translation
+        QGuiApplication.clipboard().setText(text)
+        self._feedback.setText("Đã sao chép giải thích" if self._mode == RequestMode.EXPLAIN else "Đã sao chép bản dịch")
 
     def _request_replace(self) -> None:
         if self._translation and self._replace_allowed:
